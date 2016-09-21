@@ -42,6 +42,7 @@ def execute_run(args):
 
     files = find_files(config['default']['directory'])
 
+    processed_files = 0
     for path in files:
         # Get absolute path
         path = os.path.abspath(path)
@@ -49,6 +50,7 @@ def execute_run(args):
         mediainfo = get_media_info(path)
         if 'x265' in mediainfo:
             continue
+        processed_files += 1
 
         # Get directory the movie is in and the name for the temporary
         # new encoded video file.
@@ -95,6 +97,9 @@ def execute_run(args):
         else:
             print("Pueue task failed in some kind of way.")
 
+    if processed_files == 0:
+        print('No files for encoding found')
+
 
 def find_files(path):
     """Get all known video files by recursive extension search."""
@@ -140,13 +145,13 @@ def get_current_index(command):
     """Get the status and key of the given process in pueue."""
     status = get_status()
 
-    if isinstance(status['data'], list):
+    if isinstance(status['data'], dict):
         # Get the status of the latest submitted job.
         smallest_key = None
         for key, value in status['data'].items():
             if value['command'] == command:
                 if smallest_key is None or smallest_key < key:
                     smallest_key = key
-        if smallest_key:
+        if smallest_key is not None:
             return smallest_key, status['data'][key]['status']
     return None, None
