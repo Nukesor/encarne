@@ -23,7 +23,7 @@ def execute_run(args):
     args = {key: value for key, value in args.items() if value}
     for key, value in args.items():
         if key == 'directory':
-            config['default']['directory'] = value
+            directory = value
         # Encoding
         if key == 'crf':
             config['encoding']['crf'] = str(value)
@@ -34,16 +34,15 @@ def execute_run(args):
         elif key == 'audio':
             config['encoding']['kbitrate-audio'] = value
 
-    if not config['default']['directory'] or \
-       not os.path.isdir(config['default']['directory']):
+    if not directory or not os.path.isdir(directory):
         print('A valid directory needs to be specified')
-        print(config['default']['directory'])
+        print(directory)
         sys.exit(1)
     else:
         # Get absolute path of directory
-        config['default']['directory'] = os.path.abspath(config['default']['directory'])
+        directory = os.path.abspath(directory)
 
-    files = find_files(config['default']['directory'])
+    files = find_files(directory)
 
     processed_files = 0
     for path in files:
@@ -187,7 +186,7 @@ def get_media_duration(path):
         # No duration, we return None
         return None
 
-    date = datetime.strptime("1 h 10 min", "%H h %M min")
+    date = datetime.strptime(time, "%H h %M min")
     delta = timedelta(hours=date.hour, minutes=date.minute)
 
     return delta
