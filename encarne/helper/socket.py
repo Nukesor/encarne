@@ -5,7 +5,7 @@ import getpass
 
 
 def get_socket_path():
-    # Generating pid and socket path from username
+    """Get the socket path of queue by username."""
     try:
         userName = getpass.getuser()
     except:
@@ -17,7 +17,7 @@ def get_socket_path():
 
 
 def receive_data(socket):
-    # Receive message from daemon
+    """Receive message from daemon and unpickle it."""
     answer = socket.recv(8192)
     response = pickle.loads(answer)
     socket.close()
@@ -25,14 +25,14 @@ def receive_data(socket):
 
 
 def process_response(response):
-    # Print it and exit with 1 if operation wasn't successful
+    """ Print it and exit with 1 if operation wasn't successful. """
     print(response['message'])
     if response['status'] != 'success':
         sys.exit(1)
 
 
 def connect_client_socket():
-    # Create Socket and exit with 1, if socket can't be created
+    """Create Socket and exit with 1, if socket can't be created."""
     try:
         client = socket.socket(socket.AF_UNIX, socket.SOCK_STREAM)
         client.connect(get_socket_path())

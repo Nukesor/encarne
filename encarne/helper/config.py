@@ -1,10 +1,18 @@
 import os
 import configparser
 
-from encarne.helper.files import create_config_dir
+
+def create_config_dir():
+    """Helper functions for creating a config dir."""
+    home = os.path.expanduser('~')
+    queueFolder = home+'/.config/encarne'
+    if not os.path.exists(queueFolder):
+        os.makedirs(queueFolder)
+    return queueFolder
 
 
 def read_config():
+    """Get the config file and create it with default values, if it doesn't exist."""
     configFile = create_config_dir() + '/encarne.ini'
     config = configparser.ConfigParser()
 
@@ -32,6 +40,7 @@ def read_config():
 
 
 def write_config(config):
+    """Write the config file."""
     configFile = create_config_dir() + '/encarne.ini'
 
     if os.path.exists(configFile):
