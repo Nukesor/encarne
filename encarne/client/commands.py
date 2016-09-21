@@ -22,11 +22,11 @@ def execute_run(args):
 
     args = {key: value for key, value in args.items() if value}
     for key, value in args.items():
-        if key == 'dir':
+        if key == 'directory':
             config['default']['directory'] = value
         # Encoding
         if key == 'crf':
-            config['encoding']['crf'] = value
+            config['encoding']['crf'] = str(value)
         elif key == 'preset':
             config['encoding']['preset'] = value
         elif key == 'audio':

@@ -31,9 +31,6 @@ def read_config():
         'audio': 'flac',
         'kbitrate-audio': 'None',
     }
-    config['default'] = {
-        'directory': 'None',
-    }
 
     write_config(config)
     return config

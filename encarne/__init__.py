@@ -4,11 +4,6 @@ import shutil
 import argparse
 
 from encarne.client.commands import execute_run
-from encarne.helper.validators import (
-    check_audio,
-    check_crf,
-    check_preset,
-)
 
 
 def main():
@@ -16,20 +11,24 @@ def main():
     parser = argparse.ArgumentParser(
         description='Encarne reencoder')
     parser.add_argument(
-        '-d', '--dir', type=str,
+        'directory', type=str,
         help='Directory that should be explored for video container to be encoded.')
 
     # Encoding stuff
     parser.add_argument(
-        '-c', '--crf', type=check_crf,
+        '-c', '--crf', type=int, choices=range(0, 51),
         help='Constant rate factor for ffmpeg.')
 
+    preset_values = ['ultrafast', 'superfast', 'veryfast',
+                     'faster', 'fast', 'medium', 'slow', 'slower',
+                     'veryslow', 'placebo']
     parser.add_argument(
-        '-p', '--preset', type=check_preset,
+        '-p', '--preset', type=str, choices=preset_values,
         help='Compression preset for ffmpeg.')
 
+    audio_values = ['aac', 'flac']
     parser.add_argument(
-        '-a', '--audio', type=check_audio,
+        '-a', '--audio', type=str, choices=audio_values,
         help='Audio encoding for ffmpeg.')
 
     parser.add_argument(
