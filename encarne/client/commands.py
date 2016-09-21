@@ -134,11 +134,14 @@ def execute_run(args):
 
 def find_files(path):
     """Get all known video files by recursive extension search."""
-    mkv = glob.glob(os.path.join(path, '*.mkv'))
-    mp4 = glob.glob(os.path.join(path, '*.mp4'))
-
-    movie_files = mkv + mp4
-    return movie_files
+    extensions = ['mkv', 'mp4']
+    files = []
+    for extension in extensions:
+        found = glob.glob(
+            os.path.join(path, '**/*.{}'.format(extension)),
+            recursive=True)
+        files = files + found
+    return files
 
 
 def create_ffmpeg_command(config, path, dest_path):
