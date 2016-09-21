@@ -10,7 +10,8 @@ setup(
     url='http://github.com/nukesor/encarne',
     license='MIT',
     install_requires=[
-        'pueue>=0.6.0'
+        'pueue>=0.6.0',
+        'lxml'
     ],
     classifiers=[
         'License :: OSI Approved :: MIT License',

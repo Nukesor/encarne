@@ -12,7 +12,7 @@ def get_socket_path():
         print("Couldn't get username from getpass.getuser(), aborting")
         sys.exit(1)
     else:
-        socketPath = "/tmp/encarneSocket@"+userName+".sock"
+        socketPath = "/tmp/pueueSocket@"+userName+".sock"
         return socketPath
 
 
