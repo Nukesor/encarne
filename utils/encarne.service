@@ -7,7 +7,7 @@ Description=Encarne encoder
 
 [Service]
 Restart=no
-ExecStart=/usr/bin/encarne --crf 18 --preset slow --audio flac -d '/srv/files/movies'
+ExecStart=/usr/bin/encarne '/srv/files/movies' --crf 18 --preset 'slow' --audio 'flac'
 
 [Install]
 WantedBy=default.target
