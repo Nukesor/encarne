@@ -2,6 +2,7 @@ import os
 import sys
 import time
 import glob
+import shlex
 import shutil
 import subprocess
 from lxml import etree
@@ -79,7 +80,7 @@ def execute_run(args):
             # remove the already created destination file
             if (index is None and status is None) or status == 'errored':
                 if os.path.exists(dest_path):
-                    os.path.remove(dest_path)
+                    os.remove(dest_path)
                 waiting = False
             # If the command has finished, break the loop for further processing
             elif status == 'done':
@@ -89,7 +90,7 @@ def execute_run(args):
 
         if os.path.exists(dest_path):
             print("Pueue task completed")
-            shutil.move(dest_path, path)
+            # shutil.move(dest_path, path)
             print("New encoded file is now in place")
         else:
             print("Pueue task failed in some kind of way.")
@@ -112,8 +113,8 @@ def create_ffmpeg_command(config, path, dest_path):
         audio_bitrate = ''
     ffmpeg_command = 'ffmpeg -i {path} -c:v libx265 -preset {preset} ' \
         '-crf {crf} -c:a {audio} {bitrate} {dest}'.format(
-            path=path,
-            dest=dest_path,
+            path=shlex.quote(path),
+            dest=shlex.quote(dest_path),
             preset=config['encoding']['preset'],
             crf=config['encoding']['crf'],
             audio=config['encoding']['audio'],
@@ -139,8 +140,13 @@ def get_current_index(command):
     """Get the status and key of the given process in pueue."""
     status = get_status()
 
-    if isinstance(list, status['data']):
+    if isinstance(status['data'], list):
+        # Get the status of the latest submitted job.
+        smallest_key = None
         for key, value in status['data'].items():
             if value['command'] == command:
-                return key, value['status']
+                if smallest_key is None or smallest_key < key:
+                    smallest_key = key
+        if smallest_key:
+            return smallest_key, status['data'][key]['status']
     return None, None
