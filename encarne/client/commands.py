@@ -68,6 +68,10 @@ def execute_run(args):
 
         # Send the command to pueue for scheduling, if it isn't in the queue yet
         if index is None and status is None:
+            # In case a previous run failed and pueue has been resetted,
+            # we need to check, if the encoded file is still there.
+            if os.path.exists(dest_path):
+                os.remove(dest_path)
             args = {
                 'command': ffmpeg_command,
                 'path': directory_path
