@@ -98,16 +98,34 @@ def execute_run(args):
             time.sleep(60)
 
         if os.path.exists(dest_path):
+            print("Pueue task completed")
+            copy = True
             # If the destination movie is shorter than a maximum of 20 seconds
             # as the original or has no duration property in mediafile, we drop this.
             origin_duration = get_media_duration(path)
             dest_duration = get_media_duration(dest_path)
             if dest_duration is not None:
                 diff = origin_duration - dest_duration
-                if math.fabs(diff.total_seconds()) < 20:
-                    shutil.move(dest_path, path)
-            print("Pueue task completed")
-            print("New encoded file is now in place")
+                THRESHOLD = 20
+                if math.fabs(diff.total_seconds()) < THRESHOLD:
+                    print('Encoded movie is more than {} seconds shorter than original'.format(THRESHOLD))
+                    copy = False
+
+            # Check if the filesize of the x.265 encoded object is bigger
+            # than the original.
+            if copy:
+                origin_filesize = os.path.getsize(path)
+                dest_filesize = os.path.getsize(dest_path)
+                if origin_filesize < dest_filesize:
+                    print('Encoded movie is bigger than the original movie')
+                    copy = False
+
+            # Only copy if checks above passed
+            if copy:
+                shutil.move(dest_path, path)
+                print("New encoded file is now in place")
+            else:
+                print("Didn't copy new file, see message above")
         else:
             print("Pueue task failed in some kind of way.")
 
