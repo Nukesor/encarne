@@ -5,7 +5,9 @@ import glob
 import shlex
 import shutil
 import subprocess
+
 from lxml import etree
+from datetime import datetime, timedelta
 
 from encarne.helper.config import read_config
 from encarne.client.communication import (
@@ -47,7 +49,7 @@ def execute_run(args):
         # Get absolute path
         path = os.path.abspath(path)
         # Create media info and get `Writing library` value.
-        mediainfo = get_media_info(path)
+        mediainfo = get_media_encoding(path)
         if 'x265' in mediainfo:
             continue
         processed_files += 1
@@ -91,8 +93,14 @@ def execute_run(args):
             time.sleep(60)
 
         if os.path.exists(dest_path):
+            # If the destination movie is shorter than the original
+            # or has no duration property in mediafile, we drop this.
+            origin_duration = get_media_duration(path)
+            dest_duration = get_media_duration(dest_path)
+            if dest_duration is not None:
+                if origin_duration == dest_duration:
+                    shutil.move(dest_path, path)
             print("Pueue task completed")
-            # shutil.move(dest_path, path)
             print("New encoded file is now in place")
         else:
             print("Pueue task failed in some kind of way.")
@@ -128,7 +136,7 @@ def create_ffmpeg_command(config, path, dest_path):
     return ffmpeg_command
 
 
-def get_media_info(path):
+def get_media_encoding(path):
     """Execute external mediainfo command and find the video encoding library."""
     process = subprocess.run(
         ['mediainfo', '--Output=XML', path],
@@ -139,6 +147,26 @@ def get_media_info(path):
     writing_library = root.findall('.//track[@type="Video"]/Writing_library')[0].text
 
     return writing_library
+
+
+def get_media_duration(path):
+    """Execute external mediainfo command and find the video encoding library."""
+    process = subprocess.run(
+        ['mediainfo', '--Output=XML', path],
+        stdout=subprocess.PIPE,
+        stderr=subprocess.PIPE
+    )
+    root = etree.XML(process.stdout)
+    try:
+        time = root.findall('.//track[@type="General"]/Duration')[0].text
+    except IndexError:
+        # No duration, we return None
+        return None
+
+    date = datetime.strptime("1 h 10 min", "%H h %M min")
+    delta = timedelta(hours=date.hour, minutes=date.minute)
+
+    return delta
 
 
 def get_current_index(command):
