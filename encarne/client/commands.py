@@ -205,8 +205,11 @@ def get_media_duration(path):
         print("No known time format: {}".format(time))
         return None
 
-    date = datetime.strptime(time, "%H h %M min")
-    delta = timedelta(hours=date.hour, minutes=date.minute)
+    delta = timedelta(
+        hours=date.hour,
+        minutes=date.minute,
+        seconds=date.second,
+    )
 
     return delta
 
