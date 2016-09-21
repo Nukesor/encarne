@@ -60,6 +60,7 @@ def execute_run(args):
             'command': ffmpeg_command,
             'path': directory_path
         }
+        print("Add task for '''{}''' to pueue".format(path))
         execute_add(args)
 
         waiting = True
@@ -79,7 +80,11 @@ def execute_run(args):
             time.sleep(60)
 
         if os.path.exists(dest_path):
+            print("Pueue task completed")
             shutil.move(dest_path, path)
+            print("New encoded file is now in place")
+        else:
+            print("Pueue task failed in some kind of way.")
 
 
 def find_files(path):
