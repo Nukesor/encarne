@@ -1,4 +1,5 @@
 import os
+import re
 import sys
 import math
 import time
@@ -134,7 +135,7 @@ def execute_run(args):
 
 def find_files(path):
     """Get all known video files by recursive extension search."""
-    extensions = ['mkv', 'mp4']
+    extensions = ['mkv', 'mp4', 'avi']
     files = []
     for extension in extensions:
         found = glob.glob(
@@ -187,6 +188,21 @@ def get_media_duration(path):
         time = root.findall('.//track[@type="General"]/Duration')[0].text
     except IndexError:
         # No duration, we return None
+        return None
+
+    match = re.match(r'\d{0,2} h \d{0,2} min \d{0,2} s', time)
+    if match:
+        date = datetime.strptime(time, '%H h %M min %S s')
+    if not match:
+        match = re.match(r'\d{0,2} h \d{0,2} min', time)
+        if match:
+            date = datetime.strptime(time, '%H h %M min')
+    if not match:
+        match = re.match(r'\d{0,2} min \d{0,2} s', time)
+        if match:
+            date = datetime.strptime(time, '%M min %S s')
+    if not match:
+        print("No known time format: {}".format(time))
         return None
 
     date = datetime.strptime(time, "%H h %M min")
