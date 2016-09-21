@@ -54,14 +54,22 @@ def execute_run(args):
         directory_path = os.path.dirname(path)
         dest_path = os.path.join(directory_path, 'encarne_temp.mkv')
 
-        # Compile ffmpeg command and send it to pueue for scheduling
+        # Compile ffmpeg command
         ffmpeg_command = create_ffmpeg_command(config, path, dest_path)
-        args = {
-            'command': ffmpeg_command,
-            'path': directory_path
-        }
-        print("Add task for '''{}''' to pueue".format(path))
-        execute_add(args)
+
+        # Check if the current command already in the queue.
+        index, status = get_current_index(ffmpeg_command)
+
+        # Send the command to pueue for scheduling, if it isn't in the queue yet
+        if index is None and status is None:
+            args = {
+                'command': ffmpeg_command,
+                'path': directory_path
+            }
+            print("Add task for '''{}''' to pueue".format(path))
+            execute_add(args)
+        else:
+            print("Task '''{}''' already exists in pueue.".format(path))
 
         waiting = True
         while waiting:

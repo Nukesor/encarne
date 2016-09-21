@@ -1,4 +1,5 @@
 #!/bin/env python3
+import sys
 import argparse
 
 from encarne.client.commands import execute_run
@@ -38,6 +39,10 @@ def main():
     args = parser.parse_args()
 
     if hasattr(args, 'func'):
-        args.func(vars(args))
+        try:
+            args.func(vars(args))
+        except KeyboardInterrupt:
+            print('Keyboard interrupt. Shutting down')
+            sys.exit(0)
     else:
         print('Invalid Command. Please check -h')
