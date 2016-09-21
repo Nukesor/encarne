@@ -1,5 +1,6 @@
 import os
 import sys
+import math
 import time
 import glob
 import shlex
@@ -93,12 +94,13 @@ def execute_run(args):
             time.sleep(60)
 
         if os.path.exists(dest_path):
-            # If the destination movie is shorter than the original
-            # or has no duration property in mediafile, we drop this.
+            # If the destination movie is shorter than a maximum of 20 seconds
+            # as the original or has no duration property in mediafile, we drop this.
             origin_duration = get_media_duration(path)
             dest_duration = get_media_duration(dest_path)
             if dest_duration is not None:
-                if origin_duration == dest_duration:
+                diff = origin_duration - dest_duration
+                if math.fabs(diff.total_seconds()) < 20:
                     shutil.move(dest_path, path)
             print("Pueue task completed")
             print("New encoded file is now in place")
