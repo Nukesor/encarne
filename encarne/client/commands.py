@@ -139,7 +139,8 @@ def get_current_index(command):
     """Get the status and key of the given process in pueue."""
     status = get_status()
 
-    for key, value in status['data'].items():
-        if value['command'] == command:
-            return key, value['status']
+    if isinstance(list, status['data']):
+        for key, value in status['data'].items():
+            if value['command'] == command:
+                return key, value['status']
     return None, None
