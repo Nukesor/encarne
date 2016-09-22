@@ -58,7 +58,7 @@ def execute_run(args):
         # Get directory the movie is in and the name for the temporary
         # new encoded video file.
         directory_path = os.path.dirname(path)
-        dest_path = os.path.join(path, '.x265')
+        dest_path = os.path.splitext(path)[0] + '-x265.mkv'
 
         # Compile ffmpeg command
         ffmpeg_command = create_ffmpeg_command(config, path, dest_path)
@@ -101,7 +101,7 @@ def execute_run(args):
             print("Pueue task completed")
             copy = True
             # If the destination movie is shorter than a maximum of 20 seconds
-            # as the original or has no duration property in mediafile, we drop this.
+            # as the original or has no duration property in mediafmkvile, we drop this.
             origin_duration = get_media_duration(path)
             dest_duration = get_media_duration(dest_path)
             if dest_duration is not None:
