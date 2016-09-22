@@ -58,7 +58,7 @@ def execute_run(args):
         # Get directory the movie is in and the name for the temporary
         # new encoded video file.
         directory_path = os.path.dirname(path)
-        dest_path = os.path.join(directory_path, 'encarne_temp.mkv')
+        dest_path = os.path.join(path, '.x265')
 
         # Compile ffmpeg command
         ffmpeg_command = create_ffmpeg_command(config, path, dest_path)
@@ -76,10 +76,10 @@ def execute_run(args):
                 'command': ffmpeg_command,
                 'path': directory_path
             }
-            print("Add task for '''{}''' to pueue".format(path))
+            print("Add task pueue:\n {}".format(ffmpeg_command))
             execute_add(args)
         else:
-            print("Task '''{}''' already exists in pueue.".format(path))
+            print("Task already exists in pueue: \n ".format(ffmpeg_command))
 
         waiting = True
         while waiting:
