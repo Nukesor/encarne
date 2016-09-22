@@ -84,7 +84,7 @@ def execute_run(args):
             print("Add task pueue:\n {}".format(ffmpeg_command))
             execute_add(args)
         else:
-            print("Task already exists in pueue: \n ".format(ffmpeg_command))
+            print("Task already exists in pueue: \n{}".format(ffmpeg_command))
 
         waiting = True
         while waiting:
@@ -112,8 +112,8 @@ def execute_run(args):
             if dest_duration is not None:
                 diff = origin_duration - dest_duration
                 THRESHOLD = 20
-                if math.fabs(diff.total_seconds()) < THRESHOLD:
-                    print('Encoded movie is more than {} seconds shorter than original'.format(THRESHOLD))
+                if math.fabs(diff.total_seconds()) > THRESHOLD:
+                    print('Encoded movie is more than {} shorter/longer than original.'.format(THRESHOLD))
                     copy = False
 
             # Check if the filesize of the x.265 encoded object is bigger
@@ -225,11 +225,11 @@ def get_current_index(command):
 
     if isinstance(status['data'], dict):
         # Get the status of the latest submitted job.
-        smallest_key = None
+        highest_key = None
         for key, value in status['data'].items():
             if value['command'] == command:
-                if smallest_key is None or smallest_key < key:
-                    smallest_key = key
-        if smallest_key is not None:
-            return smallest_key, status['data'][key]['status']
+                if highest_key is None or highest_key < key:
+                    highest_key = key
+        if highest_key is not None:
+            return highest_key, status['data'][highest_key]['status']
     return None, None
