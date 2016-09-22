@@ -4,6 +4,7 @@ import shutil
 import argparse
 
 from encarne.client.commands import execute_run
+from encarne.client.communication import get_status
 
 
 def main():
@@ -43,6 +44,9 @@ def main():
     if not mediainfo_exists:
         print("Mediainfo needs to be installed on this system.")
         sys.exit(1)
+
+    # Check if pueue is available:
+    get_status()
 
     if hasattr(args, 'func'):
         try:

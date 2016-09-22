@@ -37,6 +37,6 @@ def connect_client_socket():
         client = socket.socket(socket.AF_UNIX, socket.SOCK_STREAM)
         client.connect(get_socket_path())
     except:
-        print("Error connecting to socket. Make sure the daemon is running")
+        print("Error connecting to socket. Make sure the pueue daemon is running. Execute `pueue --daemon` to start it.")
         sys.exit(1)
     return client
