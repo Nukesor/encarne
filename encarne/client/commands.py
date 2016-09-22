@@ -55,11 +55,16 @@ def execute_run(args):
             continue
         processed_files += 1
 
-        # Get directory the movie is in and the name for the temporary
-        # new encoded video file.
+        # Get directory the movie is in and the name for new encoded video file.
         directory_path = os.path.dirname(path)
-        dest_path = os.path.splitext(path)[0] + '-x265.mkv'
+        if 'x264' in path:
+            dest_path = path
+            dest_path = dest_path.replace('x264', 'x265')
+            dest_path = os.path.splitext(dest_path)[0] + '.mkv'
+        else:
+            dest_path = os.path.splitext(path)[0] + '-x265.mkv'
 
+        print(dest_path)
         # Compile ffmpeg command
         ffmpeg_command = create_ffmpeg_command(config, path, dest_path)
 
@@ -122,7 +127,7 @@ def execute_run(args):
 
             # Only copy if checks above passed
             if copy:
-                shutil.move(dest_path, path)
+                os.remove(path)
                 print("New encoded file is now in place")
             else:
                 print("Didn't copy new file, see message above")
