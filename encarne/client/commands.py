@@ -53,7 +53,6 @@ def execute_run(args):
         mediainfo = get_media_encoding(path)
         if 'x265' in mediainfo:
             continue
-        processed_files += 1
 
         # Get directory the movie is in and the name for new encoded video file.
         directory_path = os.path.dirname(path)
@@ -128,6 +127,7 @@ def execute_run(args):
             # Only copy if checks above passed
             if copy:
                 os.remove(path)
+                processed_files += 1
                 print("New encoded file is now in place")
             else:
                 print("Didn't copy new file, see message above")
@@ -136,6 +136,8 @@ def execute_run(args):
 
     if processed_files == 0:
         print('No files for encoding found')
+    else:
+        print('{} movies successfully encoded. Exiting'.format(processed_files))
 
 
 def find_files(path):
