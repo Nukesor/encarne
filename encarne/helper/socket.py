@@ -18,7 +18,7 @@ def get_socket_path():
 
 def receive_data(socket):
     """Receive message from daemon and unpickle it."""
-    answer = socket.recv(8192)
+    answer = socket.recv(1048576)
     response = pickle.loads(answer)
     socket.close()
     return response
