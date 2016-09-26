@@ -172,13 +172,17 @@ def create_ffmpeg_command(config, path, dest_path):
 
 def get_media_encoding(path):
     """Execute external mediainfo command and find the video encoding library."""
-    process = subprocess.run(
-        ['mediainfo', '--Output=XML', path],
-        stdout=subprocess.PIPE,
-        stderr=subprocess.PIPE
-    )
-    root = etree.XML(process.stdout)
-    writing_library = root.findall('.//track[@type="Video"]/Writing_library')[0].text
+    try:
+        process = subprocess.run(
+            ['mediainfo', '--Output=XML', path],
+            stdout=subprocess.PIPE,
+            stderr=subprocess.PIPE
+        )
+        root = etree.XML(process.stdout)
+        writing_library = root.findall('.//track[@type="Video"]/Writing_library')[0].text
+    except:
+        print('Failed to get media info for {}'.format(path))
+        raise
 
     return writing_library
 
