@@ -4,7 +4,7 @@ setup(
     name='encarne',
     author='Arne Beer',
     author_email='arne@twobeer.de',
-    version='0.2.0',
+    version='0.3.0',
     description='A program to automatically convert all movies in your library to h.265',
     keywords='bash command service',
     url='http://github.com/nukesor/encarne',
