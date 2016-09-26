@@ -6,6 +6,24 @@ Every single file that isn't encoded with `x265` yet will be encoded using `x265
 We use `pueue` for scheduling and process handling.
 Another requirement is `mediainfo`. A program we need to determine the used encoding for any video container.
 
+## Installation:
+
+**encarne**:  
+There are three different ways to install pueue.
+
+1. Use an Arch Linux AUR package manager i.e Yaourt: `yaourt -S encarne-git` . This will deploy the service file automatically.
+2. Install by using pip: `pip install encarne`.
+3. Clone the repository and execute `python setup.py install`.
+
+
+**Mediainfo**:  
+You need to install `mediainfo` to use encarne.
+
+**Pueue**:  
+Pueue will be installed together with encarne, but you need to start the Pueue daemon. Execute `pueue --daemon` for this.
+
+
+## Configuration
 
 Default parameters for `ffmpeg` encoding:
 
