@@ -2,6 +2,7 @@ import sys
 import socket
 import pickle
 import getpass
+import logging
 
 
 def get_socket_path():
@@ -9,7 +10,7 @@ def get_socket_path():
     try:
         userName = getpass.getuser()
     except:
-        print("Couldn't get username from getpass.getuser(), aborting")
+        logging.error("Couldn't get username from getpass.getuser(), aborting")
         sys.exit(1)
     else:
         socketPath = "/tmp/pueueSocket@"+userName+".sock"
@@ -26,7 +27,7 @@ def receive_data(socket):
 
 def process_response(response):
     """ Print it and exit with 1 if operation wasn't successful. """
-    print(response['message'])
+    logging.info(response['message'])
     if response['status'] != 'success':
         sys.exit(1)
 
@@ -37,6 +38,6 @@ def connect_client_socket():
         client = socket.socket(socket.AF_UNIX, socket.SOCK_STREAM)
         client.connect(get_socket_path())
     except:
-        print("Error connecting to socket. Make sure the pueue daemon is running. Execute `pueue --daemon` to start it.")
+        logging.error("Error connecting to socket. Make sure the pueue daemon is running. Execute `pueue --daemon` to start it.")
         sys.exit(1)
     return client

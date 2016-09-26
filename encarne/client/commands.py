@@ -10,6 +10,7 @@ import subprocess
 
 from lxml import etree
 from datetime import datetime, timedelta
+from logging.handlers import RotatingFileHandler
 
 from encarne.helper.config import read_config
 from encarne.client.communication import (
@@ -22,7 +23,17 @@ def execute_run(args):
     config = read_config()
     log_file = get_log_file()
 
-    logging.basicConfig(filename=log_file, level=logging.DEBUG)
+    log = logging.getLogger('')
+    log.setLevel(logging.DEBUG)
+    format = logging.Formatter("%(asctime)s - %(levelname)s - %(message)s")
+
+    ch = logging.StreamHandler(sys.stdout)
+    ch.setFormatter(format)
+    log.addHandler(ch)
+
+    fh = RotatingFileHandler(log_file, maxBytes=(1048576*100), backupCount=7)
+    fh.setFormatter(format)
+    log.addHandler(fh)
 
     args = {key: value for key, value in args.items() if value}
     for key, value in args.items():

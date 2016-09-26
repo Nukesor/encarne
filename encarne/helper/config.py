@@ -1,4 +1,5 @@
 import os
+import logging
 import configparser
 
 
@@ -22,7 +23,7 @@ def read_config():
             config.read(configFile)
             return config
         except:
-            print('Error while parsing config file. Deleting old config')
+            logging.info('Error while parsing config file. Deleting old config')
 
     # Default configuration
     config['encoding'] = {
