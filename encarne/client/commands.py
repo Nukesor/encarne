@@ -5,7 +5,7 @@ import math
 import time
 import glob
 import shlex
-import shutil
+import logging
 import subprocess
 
 from lxml import etree
@@ -20,6 +20,9 @@ from encarne.client.communication import (
 
 def execute_run(args):
     config = read_config()
+    log_file = get_log_file()
+
+    logging.basicConfig(filename=log_file, level=logging.DEBUG)
 
     args = {key: value for key, value in args.items() if value}
     for key, value in args.items():
@@ -36,8 +39,8 @@ def execute_run(args):
             config['encoding']['kbitrate-audio'] = value
 
     if not directory or not os.path.isdir(directory):
-        print('A valid directory needs to be specified')
-        print(directory)
+        logging.warning('A valid directory needs to be specified')
+        logging.warning(directory)
         sys.exit(1)
     else:
         # Get absolute path of directory
@@ -68,7 +71,6 @@ def execute_run(args):
         else:
             dest_path = os.path.splitext(path)[0] + '-x265.mkv'
 
-        print(dest_path)
         # Compile ffmpeg command
         ffmpeg_command = create_ffmpeg_command(config, path, dest_path)
 
@@ -85,10 +87,10 @@ def execute_run(args):
                 'command': ffmpeg_command,
                 'path': directory_path
             }
-            print("Add task pueue:\n {}".format(ffmpeg_command))
+            logging.info("Add task pueue:\n {}".format(ffmpeg_command))
             execute_add(args)
         else:
-            print("Task already exists in pueue: \n{}".format(ffmpeg_command))
+            logging.info("Task already exists in pueue: \n{}".format(ffmpeg_command))
 
         waiting = True
         while waiting:
@@ -107,7 +109,7 @@ def execute_run(args):
             time.sleep(60)
 
         if os.path.exists(dest_path):
-            print("Pueue task completed")
+            logging.info("Pueue task completed")
             copy = True
             # If the destination movie is shorter than a maximum of 20 seconds
             # as the original or has no duration property in mediafmkvile, we drop this.
@@ -117,7 +119,7 @@ def execute_run(args):
                 diff = origin_duration - dest_duration
                 THRESHOLD = 20
                 if math.fabs(diff.total_seconds()) > THRESHOLD:
-                    print('Encoded movie is more than {} shorter/longer than original.'.format(THRESHOLD))
+                    logging.warning('Encoded movie is more than {} shorter/longer than original.'.format(THRESHOLD))
                     copy = False
 
             # Check if the filesize of the x.265 encoded object is bigger
@@ -126,23 +128,23 @@ def execute_run(args):
                 origin_filesize = os.path.getsize(path)
                 dest_filesize = os.path.getsize(dest_path)
                 if origin_filesize < dest_filesize:
-                    print('Encoded movie is bigger than the original movie')
+                    logging.warning('Encoded movie is bigger than the original movie')
                     copy = False
 
             # Only copy if checks above passed
             if copy:
                 os.remove(path)
                 processed_files += 1
-                print("New encoded file is now in place")
+                logging.info("New encoded file is now in place")
             else:
-                print("Didn't copy new file, see message above")
+                logging.warning("Didn't copy new file, see message above")
         else:
-            print("Pueue task failed in some kind of way.")
+            logging.error("Pueue task failed in some kind of way.")
 
     if processed_files == 0:
-        print('No files for encoding found')
+        logging.info('No files for encoding found')
     else:
-        print('{} movies successfully encoded. Exiting'.format(processed_files))
+        logging.info('{} movies successfully encoded. Exiting'.format(processed_files))
 
 
 def find_files(path):
@@ -186,7 +188,7 @@ def get_media_encoding(path):
         root = etree.XML(process.stdout)
         writing_library = root.findall('.//track[@type="Video"]/Writing_library')[0].text
     except:
-        print('Failed to get media info for {}'.format(path))
+        logging.error('Failed to get media info for {}'.format(path))
         raise
 
     return writing_library
@@ -218,7 +220,7 @@ def get_media_duration(path):
         if match:
             date = datetime.strptime(time, '%M min %S s')
     if not match:
-        print("No known time format: {}".format(time))
+        logging.error("No known time format: {}".format(time))
         return None
 
     delta = timedelta(
@@ -244,3 +246,15 @@ def get_current_index(command):
         if highest_key is not None:
             return highest_key, status['data'][highest_key]['status']
     return None, None
+
+
+def get_log_file():
+    home = os.path.expanduser('~')
+    logFolder = home+'/.local/share/encarne'
+    if not os.path.exists(logFolder):
+        os.makedirs(logFolder)
+
+    timestamp = time.strftime('-%Y%m%d-%H%M-')
+    log_file = os.path.join(logFolder, 'encarne{}.log'.format(timestamp))
+
+    return log_file
