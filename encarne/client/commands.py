@@ -56,10 +56,15 @@ def execute_run(args):
 
         # Get directory the movie is in and the name for new encoded video file.
         directory_path = os.path.dirname(path)
-        if 'x264' in path:
-            dest_path = path
-            dest_path = dest_path.replace('x264', 'x265')
+        # Change filename to contain 'x265'.
+        # Replace it if there is a 'x264' in the filename.
+        dest_file = os.path.basename(path)
+        dest_folder = os.path.dirname(path)
+        if 'x264' in dest_file:
+            dest_file = dest_file.replace('x264', 'x265')
+            dest_path = os.path.join(dest_folder, dest_file)
             dest_path = os.path.splitext(dest_path)[0] + '.mkv'
+        # Add a `-x265.mkv` if there is nothing to replace
         else:
             dest_path = os.path.splitext(path)[0] + '-x265.mkv'
 
