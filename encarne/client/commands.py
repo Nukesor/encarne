@@ -141,6 +141,10 @@ def execute_run(args):
                 if origin_filesize < dest_filesize:
                     logging.warning('Encoded movie is bigger than the original movie')
                     copy = False
+                else:
+                    difference = origin_filesize - dest_filesize
+                    mebibyte = difference/1024/1024
+                    logging.info('The new movie is {} MIB smaller than the old one'.format(mebibyte))
 
             # Only copy if checks above passed
             if copy:
