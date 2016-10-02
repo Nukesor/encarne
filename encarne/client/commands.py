@@ -48,6 +48,8 @@ def execute_run(args):
             config['encoding']['audio'] = value
         elif key == 'audio':
             config['encoding']['kbitrate-audio'] = value
+        elif key == 'threads':
+            config['encoding']['threads'] = str(value)
 
     if not directory or not os.path.isdir(directory):
         logging.warning('A valid directory needs to be specified')
@@ -181,11 +183,12 @@ def create_ffmpeg_command(config, path, dest_path):
     else:
         audio_bitrate = ''
     ffmpeg_command = 'ffmpeg -i {path} -c:v libx265 -preset {preset} ' \
-        '-crf {crf} -c:a {audio} {bitrate} {dest}'.format(
+        '-crf {crf} -threads {threads} -c:a {audio} {bitrate} {dest}'.format(
             path=shlex.quote(path),
             dest=shlex.quote(dest_path),
             preset=config['encoding']['preset'],
             crf=config['encoding']['crf'],
+            threads=config['encoding']['threads'],
             audio=config['encoding']['audio'],
             bitrate=audio_bitrate,
         )

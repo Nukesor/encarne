@@ -31,6 +31,7 @@ def read_config():
         'preset': 'slow',
         'audio': 'flac',
         'kbitrate-audio': 'None',
+        'threads': '0'
     }
 
     write_config(config)

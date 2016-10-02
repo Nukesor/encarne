@@ -36,6 +36,10 @@ def main():
         '-ba', '--kbitrate-audio', type=str,
         help='Audio encoding bitrate (e.g. 128k or not specified for flac).')
 
+    parser.add_argument(
+        '-t', '--threads', type=int,
+        help='The threads used for encoding.')
+
     parser.set_defaults(func=execute_run)
     args = parser.parse_args()
 
