@@ -183,7 +183,7 @@ def create_ffmpeg_command(config, path, dest_path):
     else:
         audio_bitrate = ''
     ffmpeg_command = 'ffmpeg -i {path} -c:v libx265 -preset {preset} ' \
-        '-crf {crf} -threads {threads} -c:a {audio} {bitrate} {dest}'.format(
+        '-x265-params crf={crf}:pools=none -threads {threads} -c:a {audio} {bitrate} {dest}'.format(
             path=shlex.quote(path),
             dest=shlex.quote(dest_path),
             preset=config['encoding']['preset'],
