@@ -207,7 +207,7 @@ def get_media_encoding(path):
         writing_library = root.findall('.//track[@type="Video"]/Writing_library')[0].text
     except:
         logging.error('Failed to get media info for {}'.format(path))
-        raise
+        writing_library = 'unknown'
 
     return writing_library
 
