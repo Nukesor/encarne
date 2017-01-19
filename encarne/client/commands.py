@@ -69,6 +69,9 @@ def execute_run(args):
         mediainfo = get_media_encoding(path)
         if 'x265' in mediainfo:
             continue
+        # In case we reencoded it and it failed, we ignore this file
+        if 'encarne-failed' in path:
+            continue
 
         # Get directory the movie is in and the name for new encoded video file.
         directory_path = os.path.dirname(path)
@@ -154,6 +157,13 @@ def execute_run(args):
                 processed_files += 1
                 logging.info("New encoded file is now in place")
             else:
+                # Remove the encoded file and mark the old one as failed.
+                failed_path = + '{}-encarne-failed{}'.format(
+                    os.path.splitext(path)[0],
+                    os.path.splitext(path)[1]
+                )
+                os.rename(path, failed_path)
+                os.remove(dest_path)
                 logging.warning("Didn't copy new file, see message above")
         else:
             logging.error("Pueue task failed in some kind of way.")
