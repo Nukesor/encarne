@@ -158,7 +158,7 @@ def execute_run(args):
                 logging.info("New encoded file is now in place")
             else:
                 # Remove the encoded file and mark the old one as failed.
-                failed_path = + '{}-encarne-failed{}'.format(
+                failed_path = '{}-encarne-failed{}'.format(
                     os.path.splitext(path)[0],
                     os.path.splitext(path)[1]
                 )
