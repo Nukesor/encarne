@@ -127,13 +127,13 @@ def execute_run(args):
         if os.path.exists(dest_path):
             logging.info("Pueue task completed")
             copy = True
-            # If the destination movie is shorter than a maximum of 20 seconds
+            # If the destination movie is shorter than a maximum of 1 seconds
             # as the original or has no duration property in mediafmkvile, we drop this.
             origin_duration = get_media_duration(path)
             dest_duration = get_media_duration(dest_path)
             if dest_duration is not None:
                 diff = origin_duration - dest_duration
-                THRESHOLD = 20
+                THRESHOLD = 1
                 if math.fabs(diff.total_seconds()) > THRESHOLD:
                     logging.warning('Encoded movie is more than {} shorter/longer than original.'.format(THRESHOLD))
                     copy = False
