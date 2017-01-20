@@ -133,7 +133,7 @@ def execute_run(args):
             dest_duration = get_media_duration(dest_path)
             if dest_duration is not None:
                 diff = origin_duration - dest_duration
-                THRESHOLD = 1
+                THRESHOLD = 2
                 if math.fabs(diff.total_seconds()) > THRESHOLD:
                     logging.warning('Encoded movie is more than {} shorter/longer than original.'.format(THRESHOLD))
                     copy = False
