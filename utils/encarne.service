@@ -1,13 +1,11 @@
 # This is the service file for encarne
-# To enable the daemon type `systemctl --user enable encarne.service`
-# To start the daemon type `systemctl --user start encarne.service`
 
 [Unit]
 Description=Encarne encoder
 
 [Service]
 Restart=no
-ExecStart=/usr/bin/encarne '/srv/files/movies' --crf 18 --preset 'slow' --audio 'flac'
+ExecStart=/usr/bin/encarne '/srv/files/movies'
 
 [Install]
 WantedBy=default.target
