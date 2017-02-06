@@ -74,21 +74,24 @@ def execute_run(args):
             continue
 
         # Get directory the movie is in and the name for new encoded video file.
-        directory_path = os.path.dirname(path)
+        dest_folder = os.path.dirname(path)
         # Change filename to contain 'x265'.
         # Replace it if there is a 'x264' in the filename.
         dest_file = os.path.basename(path)
-        dest_folder = os.path.dirname(path)
+        home = os.path.expanduser('~')
         if 'x264' in dest_file:
             dest_file = dest_file.replace('x264', 'x265')
-            dest_path = os.path.join(dest_folder, dest_file)
-            dest_path = os.path.splitext(dest_path)[0] + '.mkv'
+            temp_path = os.path.join(home, dest_file)
+            temp_path = os.path.splitext(temp_path)[0] + '.mkv'
         # Add a `-x265.mkv` if there is nothing to replace
         else:
-            dest_path = os.path.splitext(path)[0] + '-x265.mkv'
+            temp_path = os.path.join(home, dest_file)
+            temp_path = os.path.splitext(temp_path)[0] + '-x265.mkv'
+        dest_file = os.path.basename(temp_path)
+        dest_path = os.path.join(dest_folder, dest_file)
 
         # Compile ffmpeg command
-        ffmpeg_command = create_ffmpeg_command(config, path, dest_path)
+        ffmpeg_command = create_ffmpeg_command(config, path, temp_path)
 
         # Check if the current command already in the queue.
         index, status = get_current_index(ffmpeg_command)
@@ -97,11 +100,11 @@ def execute_run(args):
         if index is None and status is None:
             # In case a previous run failed and pueue has been resetted,
             # we need to check, if the encoded file is still there.
-            if os.path.exists(dest_path):
-                os.remove(dest_path)
+            if os.path.exists(temp_path):
+                os.remove(temp_path)
             args = {
                 'command': ffmpeg_command,
-                'path': directory_path
+                'path': dest_folder
             }
             logging.info("Add task pueue:\n {}".format(ffmpeg_command))
             execute_add(args)
@@ -115,8 +118,8 @@ def execute_run(args):
             # If the command has been removed or errored,
             # remove the already created destination file
             if (index is None and status is None) or status == 'errored':
-                if os.path.exists(dest_path):
-                    os.remove(dest_path)
+                if os.path.exists(temp_path):
+                    os.remove(temp_path)
                 waiting = False
             # If the command has finished, break the loop for further processing
             elif status == 'done':
@@ -124,15 +127,15 @@ def execute_run(args):
 
             time.sleep(60)
 
-        if os.path.exists(dest_path):
+        if os.path.exists(temp_path):
             logging.info("Pueue task completed")
             copy = True
             # If the destination movie is shorter than a maximum of 1 seconds
             # as the original or has no duration property in mediafmkvile, we drop this.
             origin_duration = get_media_duration(path)
-            dest_duration = get_media_duration(dest_path)
-            if dest_duration is not None:
-                diff = origin_duration - dest_duration
+            duration = get_media_duration(temp_path)
+            if duration is not None:
+                diff = origin_duration - duration
                 THRESHOLD = 2
                 if math.fabs(diff.total_seconds()) > THRESHOLD:
                     logging.warning('Encoded movie is more than {} shorter/longer than original.'.format(THRESHOLD))
@@ -142,18 +145,19 @@ def execute_run(args):
             # than the original.
             if copy:
                 origin_filesize = os.path.getsize(path)
-                dest_filesize = os.path.getsize(dest_path)
-                if origin_filesize < dest_filesize:
+                filesize = os.path.getsize(temp_path)
+                if origin_filesize < filesize:
                     logging.warning('Encoded movie is bigger than the original movie')
                     copy = False
                 else:
-                    difference = origin_filesize - dest_filesize
+                    difference = origin_filesize - filesize
                     mebibyte = int(difference/1024/1024)
                     logging.info('The new movie is {} MIB smaller than the old one'.format(mebibyte))
 
             # Only copy if checks above passed
             if copy:
                 os.remove(path)
+                os.rename(temp_path, dest_path)
                 processed_files += 1
                 logging.info("New encoded file is now in place")
             else:
