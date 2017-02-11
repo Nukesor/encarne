@@ -167,7 +167,7 @@ def execute_run(args):
                     os.path.splitext(path)[1]
                 )
                 os.rename(path, failed_path)
-                os.remove(dest_path)
+                os.remove(temp_path)
                 logging.warning("Didn't copy new file, see message above")
         else:
             logging.error("Pueue task failed in some kind of way.")
