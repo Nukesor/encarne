@@ -1,20 +1,16 @@
+import os
 import sys
 import socket
 import pickle
-import getpass
 import logging
 
 
 def get_socket_path():
-    """Get the socket path of queue by username."""
-    try:
-        userName = getpass.getuser()
-    except:
-        logging.error("Couldn't get username from getpass.getuser(), aborting")
-        sys.exit(1)
-    else:
-        socketPath = "/tmp/pueueSocket@"+userName+".sock"
-        return socketPath
+    """Get the socket path of pueue."""
+
+    config_dir = os.path.join(os.path.expanduser('~'), '.config/pueue')
+    socket_path = os.path.join(config_dir, "pueue.sock")
+    return socket_path
 
 
 def receive_data(socket):

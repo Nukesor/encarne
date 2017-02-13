@@ -1,13 +1,13 @@
 import pickle
 
-from encarne.helper.socket import (
+from encarne.socket import (
     connect_client_socket,
-    receive_data,
     process_response,
+    receive_data,
 )
 
 
-def execute_add(args):
+def add(args):
     client = connect_client_socket()
 
     # Send new instruction to daemon
@@ -19,23 +19,7 @@ def execute_add(args):
     data_string = pickle.dumps(instruction, -1)
     client.send(data_string)
 
-    # Receive Answer from daemon and print it
-    response = receive_data(client)
-    process_response(response)
-
-
-def execute_remove(args):
-    client = connect_client_socket()
-
-    # Send new instruction to daemon
-    instruction = {
-        'mode': 'remove',
-        'key': args['key']
-    }
-    data_string = pickle.dumps(instruction, -1)
-    client.send(data_string)
-
-    # Receive Answer from daemon and print it
+    # Receive Answer from daemon
     response = receive_data(client)
     process_response(response)
 
