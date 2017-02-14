@@ -120,7 +120,21 @@ class Encoder():
         self.directory = os.path.abspath(self.directory)
 
     def run(self):
-        """Check the specified directory for movies to be encoded."""
+        """The heart of the encoder.
+
+        At first, we get all files that should be encoded.
+        Next we start to process all files:
+
+        1. A ffmpeg command is created, which places the temporary file into ~/
+        2. The command is added to pueue.
+        3. Wait for the task to finish.
+        4. Check if the encoding was successful.
+        4.1 If it wasn't successful, we delete the encoded file and mark the
+            old file as `encarne-failed`.
+        4.2 Remove the old file and move the encoded file to the proper location.
+        5. Repeat
+
+        """
 
         files = self.find_files()
 
