@@ -271,7 +271,7 @@ class Encoder():
             if 'x265' in mediainfo:
                 continue
             elif mediainfo == 'unknown':
-                self.logger.error('Failed to get media info for {}'.format(path))
+                self.logger.info('Failed to get encoding for {}'.format(path))
 
             # In case we reencoded it and it failed, we ignore this file
             if 'encarne-failed' in path:
