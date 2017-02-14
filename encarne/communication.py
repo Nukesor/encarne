@@ -7,7 +7,7 @@ from encarne.socket import (
 )
 
 
-def add(args):
+def add_to_pueue(args):
     client = connect_client_socket()
 
     # Send new instruction to daemon
@@ -33,3 +33,19 @@ def get_status():
 
     response = receive_data(client)
     return response
+
+
+def get_newest_status(command):
+    """Get the status and key of the given process in pueue."""
+    status = get_status()
+
+    if isinstance(status['data'], dict):
+        # Get the status of the latest submitted job, with this command.
+        highest_key = None
+        for key, value in status['data'].items():
+            if value['command'] == command:
+                if highest_key is None or highest_key < key:
+                    highest_key = key
+        if highest_key is not None:
+            return status['data'][highest_key]['status']
+    return None

@@ -1,6 +1,5 @@
 import os
 import sys
-import math
 import time
 import glob
 import shlex
@@ -9,10 +8,14 @@ import configparser
 
 from logging.handlers import RotatingFileHandler
 
-from encarne.media import get_media_encoding, get_media_duration
+from encarne.media import (
+    check_file_size,
+    check_duration,
+    get_media_encoding,
+)
 from encarne.communication import (
-    add,
-    get_status,
+    add_to_pueue,
+    get_newest_status,
 )
 
 
@@ -125,57 +128,61 @@ class Encoder():
             self.logger.info('No files for encoding found.')
             sys.exit(1)
 
-        for path in files:
+        for origin_path in files:
+            # Get the directory which contains the movie and the name for
+            # the new encoded video file.
+            origin_folder = os.path.dirname(origin_path)
+            origin_file = os.path.basename(origin_path)
+            home = os.path.expanduser('~')
 
-            # Get directory the movie is in and the name for new encoded video file.
-            dest_folder = os.path.dirname(path)
             # Change filename to contain 'x265'.
             # Replace it if there is a 'x264' in the filename.
-            dest_file = os.path.basename(path)
-            home = os.path.expanduser('~')
-            if 'x264' in dest_file:
-                dest_file = dest_file.replace('x264', 'x265')
-                temp_path = os.path.join(home, dest_file)
+            if 'x264' in origin_file:
+                temp_path = os.path.join(home, origin_file.replace('x264', 'x265'))
                 temp_path = os.path.splitext(temp_path)[0] + '.mkv'
             # Add a `-x265.mkv` if there is nothing to replace
             else:
-                temp_path = os.path.join(home, dest_file)
+                temp_path = os.path.join(home, origin_file)
                 temp_path = os.path.splitext(temp_path)[0] + '-x265.mkv'
-            dest_file = os.path.basename(temp_path)
-            dest_path = os.path.join(dest_folder, dest_file)
+
+            encoded_file = os.path.basename(temp_path)
+            encoded_path = os.path.join(origin_folder, encoded_file)
 
             # Compile ffmpeg command
-            ffmpeg_command = self.create_ffmpeg_command(path, temp_path)
+            ffmpeg_command = self.create_ffmpeg_command(origin_path, temp_path)
 
             # Check if the current command already in the queue.
-            index, status = self.get_current_index(ffmpeg_command)
+            status = get_newest_status(ffmpeg_command)
 
             # Send the command to pueue for scheduling, if it isn't in the queue yet
-            if index is None and status is None:
+            if status is None:
                 # In case a previous run failed and pueue has been resetted,
                 # we need to check, if the encoded file is still there.
                 if os.path.exists(temp_path):
                     os.remove(temp_path)
+
+                # Create a new pueue task
                 args = {
                     'command': ffmpeg_command,
-                    'path': dest_folder
+                    'path': origin_folder
                 }
                 self.logger.info("Add task pueue:\n {}".format(ffmpeg_command))
-                add(args)
+                add_to_pueue(args)
             else:
                 self.logger.info("Task already exists in pueue: \n{}".format(ffmpeg_command))
 
+            # Wait for the task to finish
             waiting = True
             while waiting:
                 # Get index of current command and the current status
-                index, status = self.get_current_index(ffmpeg_command)
-                # If the command has been removed or errored,
-                # remove the already created destination file
-                if (index is None and status is None) or status == 'errored':
+                status = get_newest_status(ffmpeg_command)
+                # If the command has been removed or failed,
+                # remove the already created destination file.
+                if status is None or status == 'errored':
                     if os.path.exists(temp_path):
                         os.remove(temp_path)
                     waiting = False
-                # If the command has finished, break the loop for further processing
+                # If the command has finished, stop the loop for further processing
                 elif status == 'done':
                     waiting = False
 
@@ -184,51 +191,41 @@ class Encoder():
             if os.path.exists(temp_path):
                 self.logger.info("Pueue task completed")
                 copy = True
-                # If the destination movie is shorter than a maximum of 1 seconds
-                # as the original or has no duration property in mediafmkvile, we drop this.
-                origin_duration = get_media_duration(path)
-                duration = get_media_duration(temp_path)
-                if duration is not None:
-                    diff = origin_duration - duration
-                    THRESHOLD = 2
-                    if math.fabs(diff.total_seconds()) > THRESHOLD:
-                        self.logger.warning('Encoded movie is more than {} shorter/longer than original.'.format(THRESHOLD))
-                        copy = False
-                else:
-                    self.logger.error("No known time format: {}".format(time))
+
+                # Check if the duration of both movies differs.
+                copy, error = check_duration(origin_path, temp_path, seconds=1)
+                if not copy:
+                    self.logger.error(error)
 
                 # Check if the filesize of the x.265 encoded object is bigger
                 # than the original.
                 if copy:
-                    origin_filesize = os.path.getsize(path)
-                    filesize = os.path.getsize(temp_path)
-                    if origin_filesize < filesize:
-                        self.logger.warning('Encoded movie is bigger than the original movie')
-                        copy = False
+                    copy, message = check_file_size(origin_path, temp_path)
+                    if not copy:
+                        self.logger.error(message)
                     else:
-                        difference = origin_filesize - filesize
-                        mebibyte = int(difference/1024/1024)
-                        self.logger.info('The new movie is {} MIB smaller than the old one'.format(mebibyte))
+                        self.logger.info(message)
 
                 # Only copy if checks above passed
                 if copy:
-                    os.remove(path)
-                    os.rename(temp_path, dest_path)
+                    # Remove the old file and copy the new one to the proper directory.
+                    os.remove(origin_path)
+                    os.rename(temp_path, encoded_path)
                     self.processed_files += 1
                     self.logger.info("New encoded file is now in place")
                 else:
                     # Remove the encoded file and mark the old one as failed.
                     failed_path = '{}-encarne-failed{}'.format(
-                        os.path.splitext(path)[0],
-                        os.path.splitext(path)[1]
+                        os.path.splitext(origin_path)[0],
+                        os.path.splitext(origin_path)[1]
                     )
-                    os.rename(path, failed_path)
+                    os.rename(origin_path, failed_path)
                     os.remove(temp_path)
                     self.logger.warning("Didn't copy new file, see message above")
             else:
                 self.logger.error("Pueue task failed in some kind of way.")
 
-        self.logger.info('{} movies successfully encoded. Exiting'.format(self.processed_files))
+        self.logger.info('Successfully encoded {} movies. Exiting'.format(self.processed_files))
 
     def find_files(self):
         """Get all known video files by recursive extension search."""
@@ -244,7 +241,12 @@ class Encoder():
         return files
 
     def filter_files(self, files):
-        """Filter files and check if they are already done or failed in a previous run."""
+        """Filter files and check if they are already done or failed in a previous run.
+
+        A file will be filtered, if it already has x265 encoding or if there is
+        `encarne-failed` in the name of the file. This happens if a previous encoding task
+        failes in any way (encoded file is bigger/longer, ffmpeg failed).
+        """
 
         filtered_files = []
         for path in files:
@@ -254,6 +256,9 @@ class Encoder():
             mediainfo = get_media_encoding(path)
             if 'x265' in mediainfo:
                 continue
+            elif mediainfo == 'unknown':
+                self.logger.error('Failed to get media info for {}'.format(path))
+
             # In case we reencoded it and it failed, we ignore this file
             if 'encarne-failed' in path:
                 continue
@@ -262,7 +267,8 @@ class Encoder():
         return filtered_files
 
     def create_ffmpeg_command(self, path, dest_path):
-        """Compile an ffmpeg command by known parameters."""
+        """Compile an ffmpeg command with parameters from config."""
+
         if self.config['encoding']['kbitrate-audio'] != 'None':
             audio_bitrate = '-b:a {}'.format('audio_bitrate')
         else:
@@ -278,18 +284,3 @@ class Encoder():
                 bitrate=audio_bitrate,
             )
         return ffmpeg_command
-
-    def get_current_index(command):
-        """Get the status and key of the given process in pueue."""
-        status = get_status()
-
-        if isinstance(status['data'], dict):
-            # Get the status of the latest submitted job.
-            highest_key = None
-            for key, value in status['data'].items():
-                if value['command'] == command:
-                    if highest_key is None or highest_key < key:
-                        highest_key = key
-            if highest_key is not None:
-                return highest_key, status['data'][highest_key]['status']
-        return None, None

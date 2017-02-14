@@ -1,11 +1,44 @@
 import re
+import os
+import math
 import subprocess
 
 from lxml import etree
 from datetime import datetime, timedelta
 
 
-def get_media_encoding(self, path):
+def check_duration(origin, temp, seconds=1):
+    """Check if the duration is bigger than a specific amount."""
+    # If the destination movie is shorter than a maximum of 1 seconds as the
+    # original or has no duration property in mediainfo, the task will be dropped.
+    origin_duration = get_media_duration(origin)
+    duration = get_media_duration(temp)
+
+    # If we can't get the duration the user needs to check manually.
+    if origin_duration is None:
+        return False, "Unknown time format for {}. Please compare them by hand.".format(origin)
+    if duration is None:
+        return False, "Unknown time format for {}. Please compare them by hand.".format(temp)
+
+    diff = origin_duration - duration
+    THRESHOLD = 2
+    if math.fabs(diff.total_seconds()) > THRESHOLD:
+        return False, 'Encoded movie is more than {} shorter/longer than original.'.format(THRESHOLD)
+    return True,
+
+
+def check_file_size(origin, temp):
+    origin_filesize = os.path.getsize(origin)
+    filesize = os.path.getsize(temp)
+    if origin_filesize < filesize:
+        return False, 'Encoded movie is bigger than the original movie'
+    else:
+        difference = origin_filesize - filesize
+        mebibyte = int(difference/1024/1024)
+        return True, 'The new movie is {} MIB smaller than the old one'.format(mebibyte)
+
+
+def get_media_encoding(path):
     """Execute external mediainfo command and find the video encoding library."""
     try:
         process = subprocess.run(
@@ -16,7 +49,6 @@ def get_media_encoding(self, path):
         root = etree.XML(process.stdout)
         writing_library = root.findall('.//track[@type="Video"]/Writing_library')[0].text
     except:
-        self.logger.error('Failed to get media info for {}'.format(path))
         writing_library = 'unknown'
 
     return writing_library
