@@ -199,8 +199,8 @@ class Encoder():
                 # If the command has finished, stop the loop for further processing
                 elif status == 'done':
                     waiting = False
-
-                time.sleep(60)
+                else:
+                    time.sleep(60)
 
             if os.path.exists(temp_path):
                 self.logger.info("Pueue task completed")
