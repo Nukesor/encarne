@@ -192,7 +192,7 @@ class Encoder():
                 status = get_newest_status(ffmpeg_command)
                 # If the command has been removed or failed,
                 # remove the already created destination file.
-                if status is None or status == 'errored':
+                if status is None or status == 'failed':
                     if os.path.exists(temp_path):
                         os.remove(temp_path)
                     waiting = False
