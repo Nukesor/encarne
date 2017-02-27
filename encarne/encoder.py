@@ -225,6 +225,7 @@ class Encoder():
                     # Remove the old file and copy the new one to the proper directory.
                     os.remove(origin_path)
                     os.rename(temp_path, encoded_path)
+                    os.chmod(encoded_path, '0o644')
                     self.processed_files += 1
                     self.logger.info("New encoded file is now in place")
                 else:
