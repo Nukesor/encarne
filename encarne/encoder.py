@@ -271,13 +271,6 @@ class Encoder():
         for path in files:
             # Get absolute path
             path = os.path.abspath(path)
-            # Create media info and get `Writing library` value.
-            mediainfo = get_media_encoding(path)
-            if 'x265' in mediainfo or 'x265' in path:
-                continue
-            elif mediainfo == 'unknown':
-                self.logger.info('Failed to get encoding for {}'.format(path))
-
             # In case we reencoded it and it failed, we ignore this file
             if 'encarne-failed' in path:
                 continue
@@ -286,6 +279,13 @@ class Encoder():
             if size < int(self.config['default']['min-size']):
                 self.logger.info('File smaller than min-size: {}'.format(path))
                 continue
+
+            # Create media info and get `Writing library` value.
+            mediainfo = get_media_encoding(path)
+            if 'x265' in mediainfo or 'x265' in path:
+                continue
+            elif mediainfo == 'unknown':
+                self.logger.info('Failed to get encoding for {}'.format(path))
 
             filtered_files.append(path)
 
