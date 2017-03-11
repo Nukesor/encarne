@@ -82,6 +82,10 @@ class Encoder():
             'threads': '0'
         }
 
+        self.config['default'] = {
+            'min-size': '{}'.format(1024*1024*1024*6),
+        }
+
         self.write_config()
 
     def write_config(self):
@@ -269,7 +273,7 @@ class Encoder():
             path = os.path.abspath(path)
             # Create media info and get `Writing library` value.
             mediainfo = get_media_encoding(path)
-            if 'x265' in mediainfo:
+            if 'x265' in mediainfo or 'x265' in path:
                 continue
             elif mediainfo == 'unknown':
                 self.logger.info('Failed to get encoding for {}'.format(path))
@@ -277,6 +281,12 @@ class Encoder():
             # In case we reencoded it and it failed, we ignore this file
             if 'encarne-failed' in path:
                 continue
+
+            size = os.path.getsize(path)
+            if size < int(self.config['default']['min-size']):
+                self.logger.info('File smaller than min-size: {}'.format(path))
+                continue
+
             filtered_files.append(path)
 
         return filtered_files
