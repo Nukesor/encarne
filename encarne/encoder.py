@@ -144,7 +144,7 @@ class Encoder():
 
         if len(files) == 0:
             self.logger.info('No files for encoding found.')
-            sys.exit(1)
+            sys.exit(0)
 
         for origin_path in files:
             # Get the directory which contains the movie and the name for
