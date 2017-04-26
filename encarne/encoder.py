@@ -50,7 +50,7 @@ class Encoder():
 
     def initialize_logging(self):
         self.logger = logging.getLogger('')
-        self.logger.setLevel(logging.DEBUG)
+        self.logger.setLevel(logging.INFO)
         format = logging.Formatter("%(asctime)s - %(levelname)s - %(message)s")
 
         channel_handler = logging.StreamHandler(sys.stdout)
@@ -284,7 +284,7 @@ class Encoder():
                 continue
             # File to small for encoding
             elif size < int(self.config['default']['min-size']):
-                self.logger.info('File smaller than min-size: {}'.format(path))
+                self.logger.debug('File smaller than min-size: {}'.format(path))
                 continue
             # Unknown encoding
             elif mediainfo == 'unknown':
