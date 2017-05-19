@@ -1,9 +1,11 @@
 #!/bin/env python3
+import os
 import sys
 import shutil
 
+from pueue.client.factories import command_factory
+
 from encarne.argument_parser import parser
-from encarne.communication import get_status
 from encarne.encoder import Encoder
 
 
@@ -17,7 +19,7 @@ def main():
         sys.exit(1)
 
     # Check if pueue is available:
-    get_status()
+    command_factory('status')({}, root_dir=os.path.expanduser('~'))
 
     try:
         encoder = Encoder(vars(args))

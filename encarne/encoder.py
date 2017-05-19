@@ -7,15 +7,13 @@ import logging
 import configparser
 
 from logging.handlers import RotatingFileHandler
+from pueue.client.manipulation import execute_add
+from pueue.client.factories import command_factory
 
 from encarne.media import (
     check_file_size,
     check_duration,
     get_media_encoding,
-)
-from encarne.communication import (
-    add_to_pueue,
-    get_newest_status,
 )
 
 
@@ -172,7 +170,7 @@ class Encoder():
             ffmpeg_command = self.create_ffmpeg_command(origin_path, temp_path)
 
             # Check if the current command already in the queue.
-            status = get_newest_status(ffmpeg_command)
+            status = self.get_newest_status(ffmpeg_command)
 
             # Send the command to pueue for scheduling, if it isn't in the queue yet
             if status is None:
@@ -183,11 +181,11 @@ class Encoder():
 
                 # Create a new pueue task
                 args = {
-                    'command': ffmpeg_command,
+                    'command': [ffmpeg_command],
                     'path': origin_folder
                 }
                 self.logger.info("Add task pueue:\n {}".format(ffmpeg_command))
-                add_to_pueue(args)
+                execute_add(args, os.path.expanduser('~'))
             else:
                 self.logger.info("Task already exists in pueue: \n{}".format(ffmpeg_command))
 
@@ -195,7 +193,7 @@ class Encoder():
             waiting = True
             while waiting:
                 # Get index of current command and the current status
-                status = get_newest_status(ffmpeg_command)
+                status = self.get_newest_status(ffmpeg_command)
                 # If the command has been removed or failed,
                 # remove the already created destination file.
                 if status is None or status == 'failed':
@@ -312,3 +310,20 @@ class Encoder():
                 bitrate=audio_bitrate,
             )
         return ffmpeg_command
+
+    def get_newest_status(self, command):
+        """Get the status and key of the given process in pueue."""
+        status = command_factory('status')(
+                {}, root_dir=os.path.expanduser('~')
+            )
+
+        if isinstance(status['data'], dict):
+            # Get the status of the latest submitted job, with this command.
+            highest_key = None
+            for key, value in status['data'].items():
+                if value['command'] == command:
+                    if highest_key is None or highest_key < key:
+                        highest_key = key
+            if highest_key is not None:
+                return status['data'][highest_key]['status']
+        return None
