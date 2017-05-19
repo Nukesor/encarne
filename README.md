@@ -28,10 +28,14 @@ Pueue will be installed together with encarne, but you need to start the Pueue d
 Default parameters for `ffmpeg` encoding:
 
     # Default configuration
-    'crf': '18',
-    'preset': 'slow',
-    'audio': 'flac',
-    'kbitrate-audio': 'None',
+    ['encoding']
+    crf = 18
+    preset = slow
+    audio = flac
+    kbitrate-audio None
+
+    [default]
+    min-size = 6442450944
 
 All parameters are adjustable using the command line. Just use `-h` for more information.
 
