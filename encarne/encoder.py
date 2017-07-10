@@ -89,7 +89,7 @@ class Encoder():
     def write_config(self):
         """Write the config file."""
         if os.path.exists(self.config_file):
-            os.path.remove(self.config_file)
+            os.remove(self.config_file)
 
         with open(self.config_file, 'w') as file_descriptor:
             self.config.write(file_descriptor)
