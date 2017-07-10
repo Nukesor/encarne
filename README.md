@@ -1,18 +1,18 @@
 # Encarne
 
-This is a project for automatic `h.265` encoding of all video containers in a specified directory.
+Encarne is a tool for automatic `h.265` encoding of all video containers in a specified directory.
 
-Every single file that isn't encoded with `x265` yet will be encoded using `x265` one by one.
-We use `pueue` for scheduling and process handling.
-Another requirement is `mediainfo`. A program we need to determine the used encoding for any video container.
+Every container, which isn't encoded with `x265` will be reencoded using `x265` one by one.
+`pueue` is used for scheduling and process handling.
+Another requirement is `mediainfo`, which is needed to determine various attributes of video containers.
 
 ## Installation:
 
 **encarne**:  
 There are three different ways to install pueue.
 
-1. Use an Arch Linux AUR package manager i.e Yaourt: `yaourt -S encarne-git` . This will deploy the service file automatically.
-2. Install by using pip: `pip install encarne`.
+1. An arch linux AUR package manager e.g `yaourt`: `yaourt -S encarne-git` . This will deploy the service file automatically.
+2. Pip: `pip install encarne`.
 3. Clone the repository and execute `python setup.py install`.
 
 
@@ -20,7 +20,7 @@ There are three different ways to install pueue.
 You need to install `mediainfo` to use encarne.
 
 **Pueue**:  
-Pueue will be installed together with encarne, but you need to start the Pueue daemon. Execute `pueue --daemon` for this.
+`Pueue` will be installed together with encarne, but you need to start the `Pueue` daemon once with `pueue --daemon`.
 
 
 ## Configuration
