@@ -305,8 +305,8 @@ class Encoder():
         else:
             audio_codec = '-map 0 -c copy'
 
-        ffmpeg_command = 'ffmpeg -i {path} -c:v libx265 -preset {preset} ' \
-            '-x265-params crf={crf}:pools=none -threads {threads} {audio} {bitrate} {dest}'.format(
+        ffmpeg_command = 'ffmpeg -i {path} {audio} -c:v libx265 -preset {preset} ' \
+            '-x265-params crf={crf}:pools=none -threads {threads} {bitrate} {dest}'.format(
                 path=shlex.quote(path),
                 dest=shlex.quote(dest_path),
                 preset=self.config['encoding']['preset'],
