@@ -75,7 +75,7 @@ class Encoder():
         self.config['encoding'] = {
             'crf': '18',
             'preset': 'slow',
-            'audio': 'flac',
+            'audio': 'None',
             'kbitrate-audio': 'None',
             'threads': '0'
         }
@@ -296,17 +296,23 @@ class Encoder():
         """Compile an ffmpeg command with parameters from config."""
 
         if self.config['encoding']['kbitrate-audio'] != 'None':
-            audio_bitrate = '-b:a {}'.format('audio_bitrate')
+            audio_bitrate = '-b:a {}'.format(self.config['encoding']['kbitrate-audio'])
         else:
             audio_bitrate = ''
+
+        if self.config['encoding']['audio'] != 'None':
+            audio_codec = '-c:a {}'.format(self.config['encoding']['audio'])
+        else:
+            audio_codec = ''
+
         ffmpeg_command = 'ffmpeg -i {path} -c:v libx265 -preset {preset} ' \
-            '-x265-params crf={crf}:pools=none -threads {threads} -c:a {audio} {bitrate} {dest}'.format(
+            '-x265-params crf={crf}:pools=none -threads {threads} {audio} {bitrate} {dest}'.format(
                 path=shlex.quote(path),
                 dest=shlex.quote(dest_path),
                 preset=self.config['encoding']['preset'],
                 crf=self.config['encoding']['crf'],
                 threads=self.config['encoding']['threads'],
-                audio=self.config['encoding']['audio'],
+                audio=audio_codec,
                 bitrate=audio_bitrate,
             )
         return ffmpeg_command

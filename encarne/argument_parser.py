@@ -20,7 +20,7 @@ parser.add_argument(
     '-p', '--preset', type=str, choices=preset_values,
     help='Compression preset for ffmpeg.')
 
-audio_values = ['aac', 'flac']
+audio_values = ['aac', 'flac', 'None']
 parser.add_argument(
     '-a', '--audio', type=str, choices=audio_values,
     help='Audio encoding for ffmpeg.')
