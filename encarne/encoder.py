@@ -303,7 +303,7 @@ class Encoder():
         if self.config['encoding']['audio'] != 'None':
             audio_codec = '-c:a {}'.format(self.config['encoding']['audio'])
         else:
-            audio_codec = ''
+            audio_codec = '-map 0 -c copy'
 
         ffmpeg_command = 'ffmpeg -i {path} -c:v libx265 -preset {preset} ' \
             '-x265-params crf={crf}:pools=none -threads {threads} {audio} {bitrate} {dest}'.format(
