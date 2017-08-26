@@ -301,11 +301,13 @@ class Encoder():
             audio_bitrate = ''
 
         if self.config['encoding']['audio'] != 'None':
-            audio_codec = '-c:a {}'.format(self.config['encoding']['audio'])
+            audio_codec = '-map 0:a -c:a {}'.format(self.config['encoding']['audio'])
         else:
-            audio_codec = '-map 0 -c copy'
+            audio_codec = '-map 0:a -c:a copy'
 
-        ffmpeg_command = 'ffmpeg -i {path} {audio} -c:v libx265 -preset {preset} ' \
+        subtitles = '-map 0:s -c:s copy'
+
+        ffmpeg_command = 'ffmpeg -i {path} {audio} {subtitles} -c:v libx265 -preset {preset} ' \
             '-x265-params crf={crf}:pools=none -threads {threads} {bitrate} {dest}'.format(
                 path=shlex.quote(path),
                 dest=shlex.quote(dest_path),
@@ -313,6 +315,7 @@ class Encoder():
                 crf=self.config['encoding']['crf'],
                 threads=self.config['encoding']['threads'],
                 audio=audio_codec,
+                subtitles=subtitles,
                 bitrate=audio_bitrate,
             )
         return ffmpeg_command
