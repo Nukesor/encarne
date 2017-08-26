@@ -307,8 +307,8 @@ class Encoder():
 
         subtitles = '-map 0:s -c:s copy'
 
-        ffmpeg_command = 'ffmpeg -i {path} {audio} {subtitles} -c:v libx265 -preset {preset} ' \
-            '-x265-params crf={crf}:pools=none -threads {threads} {bitrate} {dest}'.format(
+        ffmpeg_command = 'ffmpeg -i {path} -c:v libx265 -preset {preset} ' \
+            '-x265-params crf={crf}:pools=none -threads {threads} {audio} {audio_bitrate} {subtitles} {dest}'.format(
                 path=shlex.quote(path),
                 dest=shlex.quote(dest_path),
                 preset=self.config['encoding']['preset'],
@@ -316,7 +316,7 @@ class Encoder():
                 threads=self.config['encoding']['threads'],
                 audio=audio_codec,
                 subtitles=subtitles,
-                bitrate=audio_bitrate,
+                audio_bitrate=audio_bitrate,
             )
         return ffmpeg_command
 
