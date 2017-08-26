@@ -305,7 +305,8 @@ class Encoder():
         else:
             audio_codec = '-map 0:a -c:a copy'
 
-        subtitles = '-map 0:s -c:s copy'
+        #subtitles = '-map 0:s -c:s copy'
+        subtitles = ''
 
         ffmpeg_command = 'ffmpeg -i {path} -c:v libx265 -preset {preset} ' \
             '-x265-params crf={crf}:pools=none -threads {threads} {audio} {audio_bitrate} {subtitles} {dest}'.format(
