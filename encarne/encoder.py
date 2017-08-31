@@ -303,7 +303,7 @@ class Encoder():
         if self.config['encoding']['audio'] != 'None':
             audio_codec = '-map 0:a -c:a {}'.format(self.config['encoding']['audio'])
         else:
-            audio_codec = '-map 0:a -c:a copy'
+            audio_codec = '-map 0:a'
 
         #subtitles = '-map 0:s -c:s copy'
         subtitles = ''
