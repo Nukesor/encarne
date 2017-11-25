@@ -16,14 +16,14 @@ def check_duration(origin, temp, seconds=1):
 
     # If we can't get the duration the user needs to check manually.
     if origin_duration is None:
-        return False, "Unknown time format for {}. Please compare them by hand.".format(origin)
+        return False, False, f'Unknown time format for {origin}. Please compare them by hand.'
     if duration is None:
-        return False, "Unknown time format for {}. Please compare them by hand.".format(temp)
+        return False, False, f'Unknown time format for {temp}. Please compare them by hand.'
 
     diff = origin_duration - duration
     THRESHOLD = 2
     if math.fabs(diff.total_seconds()) > THRESHOLD:
-        return False, 'Encoded movie is more than {} shorter/longer than original.'.format(THRESHOLD)
+        return False, True, f'Encoded movie is more than {THRESHOLD} shorter/longer than original.'
     return True, "Success"
 
 
@@ -35,7 +35,7 @@ def check_file_size(origin, temp):
     else:
         difference = origin_filesize - filesize
         mebibyte = int(difference/1024/1024)
-        return True, 'The new movie is {} MIB smaller than the old one'.format(mebibyte)
+        return True, f'The new movie is {mebibyte} MIB smaller than the old one'
 
 
 def get_media_encoding(path):

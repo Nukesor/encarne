@@ -208,10 +208,8 @@ class Encoder():
 
             if os.path.exists(temp_path):
                 self.logger.info("Pueue task completed")
-                copy = True
-
                 # Check if the duration of both movies differs.
-                copy, error = check_duration(origin_path, temp_path, seconds=1)
+                copy, delete, error = check_duration(origin_path, temp_path, seconds=1)
                 if not copy:
                     self.logger.error(error)
 
@@ -232,6 +230,9 @@ class Encoder():
                     os.chmod(encoded_path, 0o644)
                     self.processed_files += 1
                     self.logger.info("New encoded file is now in place")
+                elif not delete:
+                    os.rename(temp_path, encoded_path)
+                    os.chmod(encoded_path, 0o644)
                 else:
                     # Remove the encoded file and mark the old one as failed.
                     failed_path = '{}-encarne-failed{}'.format(
@@ -278,7 +279,7 @@ class Encoder():
             if 'encarne-failed' in path:
                 continue
             # Already encoded
-            elif 'x265' in mediainfo or 'x265' in path:
+            elif '265' in mediainfo or '265' in path:
                 continue
             # File to small for encoding
             elif size < int(self.config['default']['min-size']):

@@ -5,7 +5,7 @@ setup(
     author='Arne Beer',
     author_email='arne@twobeer.de',
     version='1.1.0',
-    description='A program to automatically convert all movies in your library to h.265',
+    description='Automatically convert all movies in your library to h.265',
     keywords='bash command service',
     url='http://github.com/nukesor/encarne',
     license='MIT',
@@ -15,9 +15,7 @@ setup(
     ],
     classifiers=[
         'License :: OSI Approved :: MIT License',
-        'Programming Language :: Python :: 3.3',
-        'Programming Language :: Python :: 3.4',
-        'Programming Language :: Python :: 3.5',
+        'Programming Language :: Python :: 3.6',
         'Environment :: Console'
     ],
     packages=find_packages(),
