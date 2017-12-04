@@ -230,10 +230,7 @@ class Encoder():
                     os.chmod(encoded_path, 0o644)
                     self.processed_files += 1
                     self.logger.info("New encoded file is now in place")
-                elif not delete:
-                    os.rename(temp_path, encoded_path)
-                    os.chmod(encoded_path, 0o644)
-                else:
+                elif delete:
                     # Remove the encoded file and mark the old one as failed.
                     failed_path = '{}-encarne-failed{}'.format(
                         os.path.splitext(origin_path)[0],

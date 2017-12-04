@@ -24,7 +24,7 @@ def check_duration(origin, temp, seconds=1):
     THRESHOLD = 2
     if math.fabs(diff.total_seconds()) > THRESHOLD:
         return False, True, f'Encoded movie is more than {THRESHOLD} shorter/longer than original.'
-    return True, "Success"
+    return True, False, "Success"
 
 
 def check_file_size(origin, temp):
