@@ -68,9 +68,15 @@ def get_media_duration(path):
         # No duration, we return None
         return None
 
-    match = re.match(r'\d{0,2} h \d{0,2} min \d{0,2} s', duration)
+    # Newer mediainfo version, duration already is in seconds.
+    match = re.match(r'\d+\.\d+', duration)
     if match:
-        date = datetime.strptime(duration, '%H h %M min %S s')
+        return timedelta(seconds=int(match[0]))
+
+    if not match:
+        match = re.match(r'\d{0,2} h \d{0,2} min \d{0,2} s', duration)
+        if match:
+            date = datetime.strptime(duration, '%H h %M min %S s')
     if not match:
         match = re.match(r'\d{0,2} h \d{0,2} min', duration)
         if match:
