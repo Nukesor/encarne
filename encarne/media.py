@@ -71,7 +71,7 @@ def get_media_duration(path):
     # Newer mediainfo version, duration already is in seconds.
     match = re.match(r'\d+\.\d+', duration)
     if match:
-        return timedelta(seconds=int(match[0]))
+        return timedelta(seconds=int(match.split('.')[0]))
 
     if not match:
         match = re.match(r'\d{0,2} h \d{0,2} min \d{0,2} s', duration)
