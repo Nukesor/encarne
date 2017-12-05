@@ -1,10 +1,12 @@
-import re
+"""Mediainfo related code."""
 import os
 import math
 import subprocess
 
 from lxml import etree
 from datetime import datetime, timedelta
+
+from encarne.logger import Logger
 
 
 def check_duration(origin, temp, seconds=1):
@@ -16,26 +18,32 @@ def check_duration(origin, temp, seconds=1):
 
     # If we can't get the duration the user needs to check manually.
     if origin_duration is None:
-        return False, False, f'Unknown time format for {origin}. Please compare them by hand.'
+        Logger.info(f'Unknown time format for {origin}, compare them by hand.')
+        return False, False,
     if duration is None:
-        return False, False, f'Unknown time format for {temp}. Please compare them by hand.'
+        Logger.info(f'Unknown time format for {temp}, compare them by hand.')
+        return False, False
 
     diff = origin_duration - duration
-    THRESHOLD = 2
+    THRESHOLD = 1
     if math.fabs(diff.total_seconds()) > THRESHOLD:
-        return False, True, f'Encoded movie is more than {THRESHOLD} shorter/longer than original.'
-    return True, False, "Success"
+        Logger.info(f'Length differs more than {THRESHOLD} seconds.')
+        return False, True
+    return True, False
 
 
 def check_file_size(origin, temp):
+    """Compare the file size of original and re encoded file."""
     origin_filesize = os.path.getsize(origin)
     filesize = os.path.getsize(temp)
     if origin_filesize < filesize:
-        return False, 'Encoded movie is bigger than the original movie'
+        Logger.info('Encoded movie is bigger than the original movie')
+        return False
     else:
         difference = origin_filesize - filesize
         mebibyte = int(difference/1024/1024)
-        return True, f'The new movie is {mebibyte} MIB smaller than the old one'
+        Logger.info(f'The new movie is {mebibyte} MIB smaller than the old one')
+        return True
 
 
 def get_media_encoding(path):
@@ -44,11 +52,11 @@ def get_media_encoding(path):
         process = subprocess.run(
             ['mediainfo', '--Output=XML', path],
             stdout=subprocess.PIPE,
-            stderr=subprocess.PIPE
+            stderr=subprocess.PIPE,
         )
         root = etree.XML(process.stdout)
         writing_library = root.findall('.//track[@type="Video"]/Writing_library')[0].text
-    except:
+    except BaseException:
         writing_library = 'unknown'
 
     return writing_library
@@ -57,35 +65,25 @@ def get_media_encoding(path):
 def get_media_duration(path):
     """Execute external mediainfo command and find the video encoding library."""
     process = subprocess.run(
-        ['mediainfo', '--Output=XML', path],
+        ['mediainfo', '--Output=PBCore2', path],
         stdout=subprocess.PIPE,
-        stderr=subprocess.PIPE
+        stderr=subprocess.PIPE,
     )
     root = etree.XML(process.stdout)
     try:
-        duration = root.findall('.//track[@type="General"]/Duration')[0].text
+        duration = root.find(
+            ".//ns:instantiationDuration",
+            namespaces={'ns': 'http://www.pbcore.org/PBCore/PBCoreNamespace.html'},
+        ).text
     except IndexError:
-        # No duration, we return None
+        Logger.info(f'Could not find duration for {path}')
         return None
 
-    # Newer mediainfo version, duration already is in seconds.
-    match = re.match(r'\d+\.\d+', duration)
-    if match:
-        return timedelta(seconds=int(match.split('.')[0]))
-
-    if not match:
-        match = re.match(r'\d{0,2} h \d{0,2} min \d{0,2} s', duration)
-        if match:
-            date = datetime.strptime(duration, '%H h %M min %S s')
-    if not match:
-        match = re.match(r'\d{0,2} h \d{0,2} min', duration)
-        if match:
-            date = datetime.strptime(duration, '%H h %M min')
-    if not match:
-        match = re.match(r'\d{0,2} min \d{0,2} s', duration)
-        if match:
-            date = datetime.strptime(duration, '%M min %S s')
-    if not match:
+    try:
+        duration = duration.split('.')[0]
+        date = datetime.strptime(duration, '%H:%M:%S')
+    except BaseException:
+        Logger.info(f'Unkown duration: {duration}')
         return None
 
     delta = timedelta(

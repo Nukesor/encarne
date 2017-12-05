@@ -1,3 +1,4 @@
+"""Setup for encarne."""
 from setuptools import setup, find_packages
 
 setup(
@@ -11,16 +12,16 @@ setup(
     license='MIT',
     install_requires=[
         'pueue>=1.0.0',
-        'lxml'
+        'lxml',
     ],
     classifiers=[
         'License :: OSI Approved :: MIT License',
         'Programming Language :: Python :: 3.6',
-        'Environment :: Console'
+        'Environment :: Console',
     ],
     packages=find_packages(),
     entry_points={
         'console_scripts': [
-            'encarne=encarne:main'
-        ]
+            'encarne=encarne:main',
+        ],
     })

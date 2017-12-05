@@ -1,15 +1,15 @@
+"""Encoding."""
 import os
 import sys
 import time
 import glob
 import shlex
-import logging
 import configparser
 
-from logging.handlers import RotatingFileHandler
 from pueue.client.manipulation import execute_add
 from pueue.client.factories import command_factory
 
+from encarne.logger import Logger
 from encarne.media import (
     check_file_size,
     check_duration,
@@ -18,10 +18,11 @@ from encarne.media import (
 
 
 class Encoder():
+    """Encoder class."""
+
     def __init__(self, args):
-        # Set up all directories needed by encarne
+        """Create a new encoder."""
         self.initialize_directories()
-        self.initialize_logging()
         self.read_config()
         self.format_args(args)
 
@@ -29,47 +30,32 @@ class Encoder():
         self.processed_files = 0
 
     def initialize_directories(self):
-        """Helper functions for creating a needed dir."""
-        # Create logging directory and get log file path
+        """Create needed directories."""
         home = os.path.expanduser('~')
         log_dir = os.path.join(home, '.local/share/encarne')
+        config_dir = os.path.join(home, '.config/encarne')
+
+        # Create log dir
         if not os.path.exists(log_dir):
             os.makedirs(log_dir)
 
-        timestamp = time.strftime('-%Y%m%d-%H%M-')
-        self.log_file = os.path.join(log_dir, 'encarne{}.log'.format(timestamp))
-
         # Create config directory
-        config_dir = os.path.join(home, '.config/encarne')
         if not os.path.exists(config_dir):
             os.makedirs(config_dir)
 
-        self.config_file = os.path.join(config_dir, 'encarne.ini')
-
-    def initialize_logging(self):
-        self.logger = logging.getLogger('')
-        self.logger.setLevel(logging.INFO)
-        format = logging.Formatter("%(asctime)s - %(levelname)s - %(message)s")
-
-        channel_handler = logging.StreamHandler(sys.stdout)
-        channel_handler.setFormatter(format)
-        self.logger.addHandler(channel_handler)
-
-        file_handler = RotatingFileHandler(self.log_file, maxBytes=(1048576*100), backupCount=7)
-        file_handler.setFormatter(format)
-        self.logger.addHandler(file_handler)
+        self.config_path = os.path.join(config_dir, 'encarne.ini')
 
     def read_config(self):
-        """Get the config file and create it with default values, if it doesn't exist."""
+        """Get the config file or create it with default values."""
         self.config = configparser.ConfigParser()
 
         # Try to get config, if this doesn't work a new default config will be created
-        if os.path.exists(self.config_file):
+        if os.path.exists(self.config_path):
             try:
-                self.config.read(self.config_file)
+                self.config.read(self.config_path)
                 return
-            except:
-                self.logger.info('Error while parsing config file. Deleting old config')
+            except BaseException:
+                Logger.info('Error while parsing config file. Deleting old config')
 
         # Default configuration
         self.config['encoding'] = {
@@ -77,26 +63,25 @@ class Encoder():
             'preset': 'slow',
             'audio': 'None',
             'kbitrate-audio': 'None',
-            'threads': '0'
+            'threads': '0',
         }
 
         self.config['default'] = {
-            'min-size': '{}'.format(1024*1024*1024*6),
+            'min-size': '{0}'.format(1024*1024*1024*6),
         }
 
         self.write_config()
 
     def write_config(self):
         """Write the config file."""
-        if os.path.exists(self.config_file):
-            os.remove(self.config_file)
+        if os.path.exists(self.config_path):
+            os.remove(self.config_path)
 
-        with open(self.config_file, 'w') as file_descriptor:
+        with open(self.config_path, 'w') as file_descriptor:
             self.config.write(file_descriptor)
 
     def format_args(self, args):
         """Check arguments and format them to be compatible with `self.config`."""
-
         args = {key: value for key, value in args.items() if value}
         for key, value in args.items():
             if key == 'directory':
@@ -114,18 +99,17 @@ class Encoder():
                 self.config['encoding']['threads'] = str(value)
 
         if not self.directory or not os.path.isdir(self.directory):
-            self.logger.warning('A valid directory needs to be specified')
-            self.logger.warning(self.directory)
+            Logger.warning('A valid directory needs to be specified')
+            Logger.warning(self.directory)
             sys.exit(1)
 
         # Get absolute path of directory
         self.directory = os.path.abspath(self.directory)
 
     def run(self):
-        """The heart of the encoder.
+        """Schedule and manage encoding of a movie.
 
-        At first, we get all files that should be encoded.
-        Next we start to process all files:
+        Get all files that should be encoded and process them:
 
         1. A ffmpeg command is created, which places the temporary file into ~/
         2. The command is added to pueue.
@@ -137,14 +121,13 @@ class Encoder():
         5. Repeat
 
         """
-
         files = self.find_files()
 
         if len(files) == 0:
-            self.logger.info('No files for encoding found.')
+            Logger.info('No files for encoding found.')
             sys.exit(0)
         else:
-            self.logger.info('{} files found.'.format(len(files)))
+            Logger.info(f'{len(files)} files found.')
 
         for origin_path in files:
             # Get the directory which contains the movie and the name for
@@ -182,12 +165,12 @@ class Encoder():
                 # Create a new pueue task
                 args = {
                     'command': [ffmpeg_command],
-                    'path': origin_folder
+                    'path': origin_folder,
                 }
-                self.logger.info("Add task pueue:\n {}".format(ffmpeg_command))
+                Logger.info(f'Add task pueue:\n {ffmpeg_command}')
                 execute_add(args, os.path.expanduser('~'))
             else:
-                self.logger.info("Task already exists in pueue: \n{}".format(ffmpeg_command))
+                Logger.info(f'Task already exists in pueue: \n{ffmpeg_command}')
 
             # Wait for the task to finish
             waiting = True
@@ -207,20 +190,14 @@ class Encoder():
                     time.sleep(60)
 
             if os.path.exists(temp_path):
-                self.logger.info("Pueue task completed")
+                Logger.info("Pueue task completed")
                 # Check if the duration of both movies differs.
-                copy, delete, error = check_duration(origin_path, temp_path, seconds=1)
-                if not copy:
-                    self.logger.error(error)
+                copy, delete = check_duration(origin_path, temp_path, seconds=1)
 
                 # Check if the filesize of the x.265 encoded object is bigger
                 # than the original.
                 if copy:
-                    copy, message = check_file_size(origin_path, temp_path)
-                    if not copy:
-                        self.logger.error(message)
-                    else:
-                        self.logger.info(message)
+                    copy = check_file_size(origin_path, temp_path)
 
                 # Only copy if checks above passed
                 if copy:
@@ -229,20 +206,20 @@ class Encoder():
                     os.rename(temp_path, encoded_path)
                     os.chmod(encoded_path, 0o644)
                     self.processed_files += 1
-                    self.logger.info("New encoded file is now in place")
+                    Logger.info("New encoded file is now in place")
                 elif delete:
                     # Remove the encoded file and mark the old one as failed.
-                    failed_path = '{}-encarne-failed{}'.format(
+                    failed_path = '{0}-encarne-failed{1}'.format(
                         os.path.splitext(origin_path)[0],
-                        os.path.splitext(origin_path)[1]
+                        os.path.splitext(origin_path)[1],
                     )
                     os.rename(origin_path, failed_path)
                     os.remove(temp_path)
-                    self.logger.warning("Didn't copy new file, see message above")
+                    Logger.warning("Didn't copy new file, see message above")
             else:
-                self.logger.error("Pueue task failed in some kind of way.")
+                Logger.error("Pueue task failed in some kind of way.")
 
-        self.logger.info('Successfully encoded {} movies. Exiting'.format(self.processed_files))
+        Logger.info(f'Successfully encoded {self.processed_files} movies. Exiting')
 
     def find_files(self):
         """Get all known video files by recursive extension search."""
@@ -250,7 +227,7 @@ class Encoder():
         files = []
         for extension in extensions:
             found = glob.glob(
-                os.path.join(self.directory, '**/*.{}'.format(extension)),
+                os.path.join(self.directory, f'**/*.{extension}'),
                 recursive=True)
             files = files + found
 
@@ -264,7 +241,6 @@ class Encoder():
         `encarne-failed` in the name of the file. This happens if a previous encoding task
         failes in any way (encoded file is bigger/longer, ffmpeg failed).
         """
-
         filtered_files = []
         for path in files:
             # Get absolute path
@@ -280,11 +256,11 @@ class Encoder():
                 continue
             # File to small for encoding
             elif size < int(self.config['default']['min-size']):
-                self.logger.debug('File smaller than min-size: {}'.format(path))
+                Logger.debug('File smaller than min-size: {path}')
                 continue
             # Unknown encoding
             elif mediainfo == 'unknown':
-                self.logger.info('Failed to get encoding for {}'.format(path))
+                Logger.info(f'Failed to get encoding for {path}')
 
             filtered_files.append(path)
 
@@ -292,18 +268,16 @@ class Encoder():
 
     def create_ffmpeg_command(self, path, dest_path):
         """Compile an ffmpeg command with parameters from config."""
-
         if self.config['encoding']['kbitrate-audio'] != 'None':
-            audio_bitrate = '-b:a {}'.format(self.config['encoding']['kbitrate-audio'])
+            audio_bitrate = f"-b:a {self.config['encoding']['kbitrate-audio']}"
         else:
             audio_bitrate = ''
 
         if self.config['encoding']['audio'] != 'None':
-            audio_codec = '-map 0:a -c:a {}'.format(self.config['encoding']['audio'])
+            audio_codec = f"-map 0:a -c:a {self.config['encoding']['audio']}"
         else:
             audio_codec = '-map 0:a'
 
-        #subtitles = '-map 0:s -c:s copy'
         subtitles = ''
 
         ffmpeg_command = 'ffmpeg -i {path} -map 0:v -c:v libx265 -preset {preset} ' \
@@ -321,9 +295,7 @@ class Encoder():
 
     def get_newest_status(self, command):
         """Get the status and key of the given process in pueue."""
-        status = command_factory('status')(
-                {}, root_dir=os.path.expanduser('~')
-            )
+        status = command_factory('status')({}, root_dir=os.path.expanduser('~'))
 
         if isinstance(status['data'], dict):
             # Get the status of the latest submitted job, with this command.

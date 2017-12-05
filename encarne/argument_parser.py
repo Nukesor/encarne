@@ -1,3 +1,4 @@
+"""Argument parsing."""
 import argparse
 
 

@@ -1,9 +1,14 @@
 .PHONY: default, dev-install, upload
 
-default: dev-install
+default: setup
+
+setup:
+	virtualenv -p python venv
+	venv/bin/pip install --upgrade pip
+	venv/bin/pip install -r requirements.txt -r requirements-dev.txt
 
 dev-install:
-	sudo python setup.py develop
+	venv/bin/python setup.py develop
 
 clean:
 	sudo rm -rf dist
