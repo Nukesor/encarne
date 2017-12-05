@@ -26,6 +26,11 @@ class Encoder():
         self.read_config()
         self.format_args(args)
 
+        self.origin_path = None
+        self.temp_path = None
+        self.target_path = None
+        self.ffmpeg_command = None
+
         # Various variables
         self.processed_files = 0
 
@@ -107,6 +112,32 @@ class Encoder():
         self.directory = os.path.abspath(self.directory)
 
     def run(self):
+        """Get all known video files by recursive extension search."""
+        extensions = ['mkv', 'mp4', 'avi']
+        files = []
+        for extension in extensions:
+            found = glob.glob(
+                os.path.join(self.directory, f'**/*.{extension}'),
+                recursive=True)
+            files = files + found
+
+        files = self.filter_files(files)
+
+        if len(files) == 0:
+            Logger.info('No files for encoding found.')
+            sys.exit(0)
+        else:
+            Logger.info(f'{len(files)} files found.')
+
+        for path in files:
+            self.origin_path = path
+            self.add_to_peue()
+            self.wait_for_task()
+            self.validate_encoded_file()
+
+        Logger.info(f'Successfully encoded {self.processed_files} movies. Exiting')
+
+    def add_to_peue(self):
         """Schedule and manage encoding of a movie.
 
         Get all files that should be encoded and process them:
@@ -121,118 +152,97 @@ class Encoder():
         5. Repeat
 
         """
-        files = self.find_files()
+        # Get the directory which contains the movie and the name for
+        # the new encoded video file.
+        origin_folder = os.path.dirname(self.origin_path)
+        origin_file = os.path.basename(self.origin_path)
+        home = os.path.expanduser('~')
 
-        if len(files) == 0:
-            Logger.info('No files for encoding found.')
-            sys.exit(0)
+        # Change filename to contain 'x265'.
+        # Replace it if there is a 'x264' in the filename.
+        if 'x264' in origin_file:
+            self.temp_path = os.path.join(home, origin_file.replace('x264', 'x265'))
+            self.temp_path = os.path.splitext(self.temp_path)[0] + '.mkv'
+        # Add a `-x265.mkv` if there is nothing to replace
         else:
-            Logger.info(f'{len(files)} files found.')
+            self.temp_path = os.path.join(home, origin_file)
+            self.temp_path = os.path.splitext(self.temp_path)[0] + '-x265.mkv'
 
-        for origin_path in files:
-            # Get the directory which contains the movie and the name for
-            # the new encoded video file.
-            origin_folder = os.path.dirname(origin_path)
-            origin_file = os.path.basename(origin_path)
-            home = os.path.expanduser('~')
+        self.target_path = os.path.join(origin_folder, os.path.basename(self.temp_path))
 
-            # Change filename to contain 'x265'.
-            # Replace it if there is a 'x264' in the filename.
-            if 'x264' in origin_file:
-                temp_path = os.path.join(home, origin_file.replace('x264', 'x265'))
-                temp_path = os.path.splitext(temp_path)[0] + '.mkv'
-            # Add a `-x265.mkv` if there is nothing to replace
+        # Compile ffmpeg command
+        self.set_ffmpeg_command(self.origin_path, self.temp_path)
+
+        # Check if the current command already in the queue.
+        status = self.get_newest_status(self.ffmpeg_command)
+
+        # Send the command to pueue for scheduling, if it isn't in the queue yet
+        if status is None:
+            # In case a previous run failed and pueue has been resetted,
+            # we need to check, if the encoded file is still there.
+            if os.path.exists(self.temp_path):
+                os.remove(self.temp_path)
+
+            # Create a new pueue task
+            args = {
+                'command': [self.ffmpeg_command],
+                'path': origin_folder,
+            }
+            Logger.info(f'Add task pueue:\n {self.ffmpeg_command}')
+            execute_add(args, os.path.expanduser('~'))
+        else:
+            Logger.info(f'Task already exists in pueue: \n{self.ffmpeg_command}')
+
+    def wait_for_task(self):
+        """Wait for the pueue task to finish."""
+        # Wait for the task to finish
+        waiting = True
+        while waiting:
+            # Get index of current command and the current status
+            status = self.get_newest_status(self.ffmpeg_command)
+            # If the command has been removed or failed,
+            # remove the already created destination file.
+            if status is None or status == 'failed':
+                if os.path.exists(self.temp_path):
+                    os.remove(self.temp_path)
+                waiting = False
+            # If the command has finished, stop the loop for further processing
+            elif status == 'done':
+                waiting = False
             else:
-                temp_path = os.path.join(home, origin_file)
-                temp_path = os.path.splitext(temp_path)[0] + '-x265.mkv'
+                time.sleep(60)
 
-            encoded_file = os.path.basename(temp_path)
-            encoded_path = os.path.join(origin_folder, encoded_file)
+    def validate_encoded_file(self):
+        """Validate that the encoded file is not malformed."""
+        if os.path.exists(self.temp_path):
+            Logger.info("Pueue task completed")
+            # Check if the duration of both movies differs.
+            copy, delete = check_duration(self.origin_path, self.temp_path, seconds=1)
 
-            # Compile ffmpeg command
-            ffmpeg_command = self.create_ffmpeg_command(origin_path, temp_path)
+            # Check if the filesize of the x.265 encoded object is bigger
+            # than the original.
+            if copy:
+                copy = check_file_size(self.origin_path, self.temp_path)
 
-            # Check if the current command already in the queue.
-            status = self.get_newest_status(ffmpeg_command)
-
-            # Send the command to pueue for scheduling, if it isn't in the queue yet
-            if status is None:
-                # In case a previous run failed and pueue has been resetted,
-                # we need to check, if the encoded file is still there.
-                if os.path.exists(temp_path):
-                    os.remove(temp_path)
-
-                # Create a new pueue task
-                args = {
-                    'command': [ffmpeg_command],
-                    'path': origin_folder,
-                }
-                Logger.info(f'Add task pueue:\n {ffmpeg_command}')
-                execute_add(args, os.path.expanduser('~'))
-            else:
-                Logger.info(f'Task already exists in pueue: \n{ffmpeg_command}')
-
-            # Wait for the task to finish
-            waiting = True
-            while waiting:
-                # Get index of current command and the current status
-                status = self.get_newest_status(ffmpeg_command)
-                # If the command has been removed or failed,
-                # remove the already created destination file.
-                if status is None or status == 'failed':
-                    if os.path.exists(temp_path):
-                        os.remove(temp_path)
-                    waiting = False
-                # If the command has finished, stop the loop for further processing
-                elif status == 'done':
-                    waiting = False
-                else:
-                    time.sleep(60)
-
-            if os.path.exists(temp_path):
-                Logger.info("Pueue task completed")
-                # Check if the duration of both movies differs.
-                copy, delete = check_duration(origin_path, temp_path, seconds=1)
-
-                # Check if the filesize of the x.265 encoded object is bigger
-                # than the original.
-                if copy:
-                    copy = check_file_size(origin_path, temp_path)
-
-                # Only copy if checks above passed
-                if copy:
-                    # Remove the old file and copy the new one to the proper directory.
-                    os.remove(origin_path)
-                    os.rename(temp_path, encoded_path)
-                    os.chmod(encoded_path, 0o644)
-                    self.processed_files += 1
-                    Logger.info("New encoded file is now in place")
-                elif delete:
-                    # Remove the encoded file and mark the old one as failed.
-                    failed_path = '{0}-encarne-failed{1}'.format(
-                        os.path.splitext(origin_path)[0],
-                        os.path.splitext(origin_path)[1],
-                    )
-                    os.rename(origin_path, failed_path)
-                    os.remove(temp_path)
-                    Logger.warning("Didn't copy new file, see message above")
-            else:
-                Logger.error("Pueue task failed in some kind of way.")
-
-        Logger.info(f'Successfully encoded {self.processed_files} movies. Exiting')
-
-    def find_files(self):
-        """Get all known video files by recursive extension search."""
-        extensions = ['mkv', 'mp4', 'avi']
-        files = []
-        for extension in extensions:
-            found = glob.glob(
-                os.path.join(self.directory, f'**/*.{extension}'),
-                recursive=True)
-            files = files + found
-
-        files = self.filter_files(files)
-        return files
+            # Only copy if checks above passed
+            if copy:
+                # Remove the old file and copy the new one to the proper directory.
+                os.remove(self.origin_path)
+                os.rename(self.temp_path, self.target_path)
+                os.chmod(self.target_path, 0o644)
+                self.processed_files += 1
+                Logger.info("New encoded file is now in place")
+            elif delete:
+                # Remove the encoded file and mark the old one as failed.
+                failed_path = '{0}-encarne-failed{1}'.format(
+                    os.path.splitext(self.origin_path)[0],
+                    os.path.splitext(self.origin_path)[1],
+                )
+                os.rename(self.origin_path, failed_path)
+                os.remove(self.temp_path)
+                Logger.warning("Didn't copy new file, see message above")
+        else:
+            Logger.error("Pueue task failed in some kind of way.")
 
     def filter_files(self, files):
         """Filter files and check if they are already done or failed in a previous run.
@@ -266,7 +276,7 @@ class Encoder():
 
         return filtered_files
 
-    def create_ffmpeg_command(self, path, dest_path):
+    def set_ffmpeg_command(self, path, dest_path):
         """Compile an ffmpeg command with parameters from config."""
         if self.config['encoding']['kbitrate-audio'] != 'None':
             audio_bitrate = f"-b:a {self.config['encoding']['kbitrate-audio']}"
@@ -280,7 +290,7 @@ class Encoder():
 
         subtitles = ''
 
-        ffmpeg_command = 'ffmpeg -i {path} -map 0:v -c:v libx265 -preset {preset} ' \
+        self.ffmpeg_command = 'ffmpeg -i {path} -map 0:v -c:v libx265 -preset {preset} ' \
             '-x265-params crf={crf}:pools=none -threads {threads} {audio} {audio_bitrate} {subtitles} {dest}'.format(
                 path=shlex.quote(path),
                 dest=shlex.quote(dest_path),
@@ -291,7 +301,6 @@ class Encoder():
                 subtitles=subtitles,
                 audio_bitrate=audio_bitrate,
             )
-        return ffmpeg_command
 
     def get_newest_status(self, command):
         """Get the status and key of the given process in pueue."""
