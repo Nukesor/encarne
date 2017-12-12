@@ -290,7 +290,7 @@ class Encoder():
 
         subtitles = ''
 
-        self.ffmpeg_command = 'ffmpeg -i {path} -map 0:v -c:v libx265 -preset {preset} ' \
+        self.ffmpeg_command = 'ffmpeg -i {path} -map 0:v -c:s copy -c:v libx265 -preset {preset} ' \
             '-x265-params crf={crf}:pools=none -threads {threads} {audio} {audio_bitrate} {subtitles} {dest}'.format(
                 path=shlex.quote(path),
                 dest=shlex.quote(dest_path),
