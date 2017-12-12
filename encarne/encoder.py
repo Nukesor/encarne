@@ -222,7 +222,7 @@ class Encoder():
             # Check if the filesize of the x.265 encoded object is bigger
             # than the original.
             if copy:
-                copy = check_file_size(self.origin_path, self.temp_path)
+                copy, delete = check_file_size(self.origin_path, self.temp_path)
 
             # Only copy if checks above passed
             if copy:

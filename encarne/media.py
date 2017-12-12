@@ -38,12 +38,12 @@ def check_file_size(origin, temp):
     filesize = os.path.getsize(temp)
     if origin_filesize < filesize:
         Logger.info('Encoded movie is bigger than the original movie')
-        return False
+        return False, True
     else:
         difference = origin_filesize - filesize
         mebibyte = int(difference/1024/1024)
         Logger.info(f'The new movie is {mebibyte} MIB smaller than the old one')
-        return True
+        return True, False
 
 
 def get_media_encoding(path):
