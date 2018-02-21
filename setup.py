@@ -13,6 +13,8 @@ setup(
     install_requires=[
         'pueue>=1.0.0',
         'lxml',
+        'SQLAlchemy~=1.2.0',
+        'sqlalchemy-utils~=0.32.0',
     ],
     classifiers=[
         'License :: OSI Approved :: MIT License',

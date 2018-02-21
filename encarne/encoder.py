@@ -9,7 +9,9 @@ import configparser
 from pueue.client.manipulation import execute_add
 from pueue.client.factories import command_factory
 
+from encarne.movie import Movie
 from encarne.logger import Logger
+from encarne.db import get_session, create_db
 from encarne.media import (
     check_file_size,
     check_duration,
@@ -22,10 +24,18 @@ class Encoder():
 
     def __init__(self, args):
         """Create a new encoder."""
+        # Initialize encarne sql
+        if not os.path.exists('/var/lib/encarne'):
+            os.mkdir('/var/lib/encarne')
+        if not os.path.exists('/var/lib/encarne/encarne.db'):
+            create_db()
+        self.session = get_session()
+
         self.initialize_directories()
         self.read_config()
         self.format_args(args)
 
+        self.movie = None
         self.origin_path = None
         self.temp_path = None
         self.target_path = None
@@ -73,6 +83,7 @@ class Encoder():
 
         self.config['default'] = {
             'min-size': '{0}'.format(1024*1024*1024*6),
+            'SQL_URI': '/var/lib/encarne/encarne.sql',
         }
 
         self.write_config()
@@ -156,6 +167,8 @@ class Encoder():
         # the new encoded video file.
         origin_folder = os.path.dirname(self.origin_path)
         origin_file = os.path.basename(self.origin_path)
+        size = os.path.getsize(self.origin_path)
+        self.movie = Movie.get_or_create(self.session, origin_file, origin_folder, size)
         home = os.path.expanduser('~')
 
         # Change filename to contain 'x265'.
@@ -226,6 +239,13 @@ class Encoder():
 
             # Only copy if checks above passed
             if copy:
+                # Save new size and mark as encoded
+                self.movie.size = os.path.getsize(self.temp_path)
+                self.movie.encoded = True
+                self.movie.name = os.path.basename(self.target_path)
+                self.session.add(self.movie)
+                self.session.commit()
+
                 # Remove the old file and copy the new one to the proper directory.
                 os.remove(self.origin_path)
                 os.rename(self.temp_path, self.target_path)
@@ -233,12 +253,11 @@ class Encoder():
                 self.processed_files += 1
                 Logger.info("New encoded file is now in place")
             elif delete:
-                # Remove the encoded file and mark the old one as failed.
-                failed_path = '{0}-encarne-failed{1}'.format(
-                    os.path.splitext(self.origin_path)[0],
-                    os.path.splitext(self.origin_path)[1],
-                )
-                os.rename(self.origin_path, failed_path)
+                # Mark as failed and save
+                self.movie.failed = True
+                self.session.add(self.movie)
+                self.session.commit()
+
                 os.remove(self.temp_path)
                 Logger.warning("Didn't copy new file, see message above")
         else:
@@ -255,14 +274,28 @@ class Encoder():
         for path in files:
             # Get absolute path
             path = os.path.abspath(path)
-            # In case we reencoded it and it failed, we ignore this file
             mediainfo = get_media_encoding(path)
             size = os.path.getsize(path)
+
+            # Get movie from db and check for already encoded or failed files.
+            origin_folder = os.path.dirname(path)
+            origin_file = os.path.basename(path)
+            movie = Movie.get_or_create(self.session, origin_file, origin_folder, size)
+            if movie.encoded or movie.failed:
+                continue
+
             # Encoding failed in previous run
-            if 'encarne-failed' in path:
+            elif '-encarne-failed' in path:
+                new_path = path.replace('-encarne-failed', '')
+                os.rename(path, new_path)
+                movie.failed = True
+                movie.name = origin_file.replace('-encarne-failed', '')
+                self.session.add(movie)
                 continue
             # Already encoded
             elif '265' in mediainfo or '265' in path:
+                movie.encoded = True
+                self.session.add(movie)
                 continue
             # File to small for encoding
             elif size < int(self.config['default']['min-size']):
@@ -274,6 +307,7 @@ class Encoder():
 
             filtered_files.append(path)
 
+        self.session.commit()
         return filtered_files
 
     def set_ffmpeg_command(self, path, dest_path):

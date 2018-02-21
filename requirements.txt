@@ -1,2 +1,4 @@
 pueue
 lxml
+SQLAlchemy~=1.2.0
+sqlalchemy-utils~=0.32.0
