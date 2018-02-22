@@ -11,8 +11,9 @@ setup(
     url='http://github.com/nukesor/encarne',
     license='MIT',
     install_requires=[
-        'pueue>=1.0.0',
+        'pueue',
         'lxml',
+        'humanfriendly',
         'SQLAlchemy~=1.2.0',
         'sqlalchemy-utils~=0.32.0',
     ],

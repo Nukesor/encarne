@@ -9,6 +9,10 @@ parser.add_argument(
     'directory', type=str,
     help='Directory that should be explored for video container to be encoded.')
 
+parser.add_argument(
+    '-s', '--size', type=str,
+    help='Specify minimun encoding file size (11GB, 100MB, ...).')
+
 # Encoding stuff
 parser.add_argument(
     '-c', '--crf', type=int, choices=range(0, 51),

@@ -5,6 +5,7 @@ import time
 import glob
 import shlex
 import configparser
+import humanfriendly
 
 from pueue.client.manipulation import execute_add
 from pueue.client.factories import command_factory
@@ -113,6 +114,8 @@ class Encoder():
                 self.config['encoding']['kbitrate-audio'] = value
             elif key == 'threads':
                 self.config['encoding']['threads'] = str(value)
+            elif key == 'size':
+                self.config['default']['min-size'] = str(humanfriendly.parse_size(value))
 
         if not self.directory or not os.path.isdir(self.directory):
             Logger.warning('A valid directory needs to be specified')
