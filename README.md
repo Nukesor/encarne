@@ -6,6 +6,15 @@ Every container, which isn't encoded with `x265` will be reencoded using `x265` 
 `pueue` is used for scheduling and process handling.
 Another requirement is `mediainfo`, which is needed to determine various attributes of video containers.
 
+## Features:
+
+- Automatic conversion of all movies/series in a directory
+- Easy configurable ffmpeg command
+- Configurable encoder thread count
+- Niceness to not slow down other processes on your server
+- Database to remember failed movies and to measure overall storage savings
+- Schedule management with pueue
+
 ## Installation:
 
 **encarne**:  
