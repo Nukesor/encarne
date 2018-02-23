@@ -6,6 +6,15 @@ import logging
 from logging.handlers import RotatingFileHandler
 
 
+class DirRotatingFileHandler(RotatingFileHandler):
+    """Create log dir."""
+
+    def __init__(self, filename, **kwargs):
+        """Init file handler."""
+        os.makedirs(os.path.dirname(filename), exist_ok=True)
+        RotatingFileHandler.__init__(self, filename, **kwargs)
+
+
 # Logger init and logger format
 Logger = logging.getLogger('')
 Logger.setLevel(logging.INFO)
@@ -24,6 +33,6 @@ log_file = os.path.join(log_dir, f'encarne{timestamp}.log')
 
 
 # File handler
-file_handler = RotatingFileHandler(log_file, maxBytes=(1048576*100), backupCount=7)
+file_handler = DirRotatingFileHandler(log_file, maxBytes=(1048576*100), backupCount=7)
 file_handler.setFormatter(format_str)
 Logger.addHandler(file_handler)

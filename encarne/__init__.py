@@ -1,4 +1,5 @@
 #!/bin/env python3
+"""Main file. Encarne entry point."""
 import os
 import sys
 import shutil
@@ -10,6 +11,7 @@ from encarne.encoder import Encoder
 
 
 def main():
+    """Parse args, check if everything is ok and start encarne."""
     args = parser.parse_args()
 
     # Check if mediainfo is available
@@ -22,8 +24,12 @@ def main():
     command_factory('status')({}, root_dir=os.path.expanduser('~'))
 
     try:
-        encoder = Encoder(vars(args))
-        encoder.run()
+        if hasattr(args, 'func'):
+            args.func(vars(args))
+        else:
+            encoder = Encoder(vars(args))
+            encoder.run()
+
     except KeyboardInterrupt:
         print('Keyboard interrupt. Shutting down')
         sys.exit(0)

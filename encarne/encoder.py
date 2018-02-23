@@ -47,6 +47,7 @@ class Encoder():
 
     def initialize_directories(self):
         """Create needed directories."""
+        self.directory = None
         home = os.path.expanduser('~')
         log_dir = os.path.join(home, '.local/share/encarne')
         config_dir = os.path.join(home, '.config/encarne')
@@ -117,13 +118,19 @@ class Encoder():
             elif key == 'size':
                 self.config['default']['min-size'] = str(humanfriendly.parse_size(value))
 
-        if not self.directory or not os.path.isdir(self.directory):
+        # Default if no dir is specified
+        if not self.directory:
+            self.directory = '.'
+
+        # Get absolute path of directory
+        self.directory = os.path.abspath(self.directory)
+
+        # Check if path is a dir
+        if not os.path.isdir(self.directory):
             Logger.warning('A valid directory needs to be specified')
             Logger.warning(self.directory)
             sys.exit(1)
 
-        # Get absolute path of directory
-        self.directory = os.path.abspath(self.directory)
 
     def run(self):
         """Get all known video files by recursive extension search."""
@@ -287,16 +294,8 @@ class Encoder():
             if movie.encoded or movie.failed:
                 continue
 
-            # Encoding failed in previous run
-            elif '-encarne-failed' in path:
-                new_path = path.replace('-encarne-failed', '')
-                os.rename(path, new_path)
-                movie.failed = True
-                movie.name = origin_file.replace('-encarne-failed', '')
-                self.session.add(movie)
-                continue
             # Already encoded
-            elif '265' in mediainfo or '265' in path:
+            if '265' in mediainfo or '265' in path:
                 movie.encoded = True
                 self.session.add(movie)
                 continue

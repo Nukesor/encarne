@@ -5,7 +5,7 @@ Description=Encarne encoder
 
 [Service]
 Restart=no
-ExecStart=/usr/bin/encarne '/srv/files/movies'
+ExecStart=/usr/bin/encarne -d '/srv/files/movies'
 
 [Install]
 WantedBy=default.target

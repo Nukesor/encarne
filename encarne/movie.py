@@ -1,4 +1,5 @@
 """The sqlite model for a Movie."""
+import os
 from encarne.db import base
 
 from sqlalchemy import Column, String, Boolean, Integer
@@ -32,6 +33,8 @@ class Movie(base):
                 .filter(Movie.size == size) \
                 .filter(Movie.directory == directory) \
                 .one_or_none()
+            if movie:
+                movie.fix_name(session)
         if not movie:
             movie = Movie(name, directory, size, **kwargs)
             session.add(movie)
@@ -39,3 +42,23 @@ class Movie(base):
             movie = session.query(Movie).get((name, size))
 
         return movie
+
+    @staticmethod
+    def clean_movies(session):
+        """Remove all deleted movies."""
+        movies = session.query(Movie).all()
+        for movie in movies:
+            path = os.path.join(movie.directory, movie.name)
+            if not os.path.exists(path):
+                print(f'Remove {path}')
+                session.delete(movie)
+
+    def fix_name(self, session):
+        """Fix the name in case the file got renamed."""
+        dir_files = [os.path.join(self.directory, x) for x in os.listdir(self.directory)]
+        for movie in dir_files:
+            if os.path.getsize(movie) == self.size:
+                self.name = os.path.basename(movie)
+                session.add(self)
+                session.commit()
+                return
