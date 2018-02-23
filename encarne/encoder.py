@@ -78,6 +78,7 @@ class Encoder():
         self.config['encoding'] = {
             'crf': '18',
             'preset': 'slow',
+            'niceness': '15',
             'audio': 'None',
             'kbitrate-audio': 'None',
             'threads': '0',
@@ -130,7 +131,6 @@ class Encoder():
             Logger.warning('A valid directory needs to be specified')
             Logger.warning(self.directory)
             sys.exit(1)
-
 
     def run(self):
         """Get all known video files by recursive extension search."""
@@ -326,10 +326,11 @@ class Encoder():
 
         subtitles = ''
 
-        self.ffmpeg_command = 'ffmpeg -i {path} -map 0:v -c:s copy -c:v libx265 -preset {preset} ' \
+        self.ffmpeg_command = 'nice -n {nice} ffmpeg -i {path} -map 0:v -c:s copy -c:v libx265 -preset {preset} ' \
             '-x265-params crf={crf}:pools=none -threads {threads} {audio} {audio_bitrate} {subtitles} {dest}'.format(
                 path=shlex.quote(path),
                 dest=shlex.quote(dest_path),
+                nice=self.config['default']['niceness'],
                 preset=self.config['encoding']['preset'],
                 crf=self.config['encoding']['crf'],
                 threads=self.config['encoding']['threads'],
