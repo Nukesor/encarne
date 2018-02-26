@@ -3,7 +3,6 @@ import os
 import sys
 import time
 import glob
-import shlex
 import configparser
 import humanfriendly
 
@@ -11,6 +10,7 @@ from pueue.client.manipulation import execute_add
 from pueue.client.factories import command_factory
 
 from encarne.movie import Movie
+from encarne.task import Task
 from encarne.logger import Logger
 from encarne.db import get_session, create_db
 from encarne.media import (
@@ -36,12 +36,7 @@ class Encoder():
         self.read_config()
         self.format_args(args)
 
-        self.movie = None
-        self.origin_path = None
-        self.temp_path = None
-        self.target_path = None
-        self.ffmpeg_command = None
-
+        self.tasks = []
         # Various variables
         self.processed_files = 0
 
@@ -142,162 +137,49 @@ class Encoder():
                 recursive=True)
             files = files + found
 
-        files = self.filter_files(files)
+        self.create_tasks(files)
 
-        if len(files) == 0:
+        if len(self.tasks) == 0:
             Logger.info('No files for encoding found.')
             sys.exit(0)
         else:
-            Logger.info(f'{len(files)} files found.')
+            Logger.info(f'{len(self.tasks)} files found.')
 
-        for path in files:
-            self.origin_path = path
-            self.add_to_peue()
-            self.wait_for_task()
-            self.validate_encoded_file()
+        # Add all tasks to pueue
+        for task in self.tasks:
+            self.add_task(task)
+
+        # Wait for all tasks
+        for task in self.tasks:
+            self.wait_for_task(task)
+            self.validate_encoded_file(task)
 
         Logger.info(f'Successfully encoded {self.processed_files} movies. Exiting')
 
-    def add_to_peue(self):
-        """Schedule and manage encoding of a movie.
-
-        Get all files that should be encoded and process them:
-
-        1. A ffmpeg command is created, which places the temporary file into ~/
-        2. The command is added to pueue.
-        3. Wait for the task to finish.
-        4. Check if the encoding was successful.
-        4.1 If it wasn't successful, we delete the encoded file and mark the
-            old file as `encarne-failed`.
-        4.2 Remove the old file and move the encoded file to the proper location.
-        5. Repeat
-
-        """
-        # Get the directory which contains the movie and the name for
-        # the new encoded video file.
-        origin_folder = os.path.dirname(self.origin_path)
-        origin_file = os.path.basename(self.origin_path)
-        size = os.path.getsize(self.origin_path)
-        self.movie = Movie.get_or_create(self.session, origin_file, origin_folder, size)
-        home = os.path.expanduser('~')
-
-        # Change filename to contain 'x265'.
-        # Replace it if there is a 'x264' in the filename.
-        if 'x264' in origin_file:
-            self.temp_path = os.path.join(home, origin_file.replace('x264', 'x265'))
-            self.temp_path = os.path.splitext(self.temp_path)[0] + '.mkv'
-        # Add a `-x265.mkv` if there is nothing to replace
-        else:
-            self.temp_path = os.path.join(home, origin_file)
-            self.temp_path = os.path.splitext(self.temp_path)[0] + '-x265.mkv'
-
-        self.target_path = os.path.join(origin_folder, os.path.basename(self.temp_path))
-
-        # Compile ffmpeg command
-        self.set_ffmpeg_command(self.origin_path, self.temp_path)
-
-        # Check if the current command already in the queue.
-        status = self.get_newest_status(self.ffmpeg_command)
-
-        # Send the command to pueue for scheduling, if it isn't in the queue yet
-        if status is None:
-            # In case a previous run failed and pueue has been resetted,
-            # we need to check, if the encoded file is still there.
-            if os.path.exists(self.temp_path):
-                os.remove(self.temp_path)
-
-            # Create a new pueue task
-            args = {
-                'command': [self.ffmpeg_command],
-                'path': origin_folder,
-            }
-            Logger.info(f'Add task pueue:\n {self.ffmpeg_command}')
-            execute_add(args, os.path.expanduser('~'))
-        else:
-            Logger.info(f'Task already exists in pueue: \n{self.ffmpeg_command}')
-
-    def wait_for_task(self):
-        """Wait for the pueue task to finish."""
-        # Wait for the task to finish
-        waiting = True
-        while waiting:
-            # Get index of current command and the current status
-            status = self.get_newest_status(self.ffmpeg_command)
-            # If the command has been removed or failed,
-            # remove the already created destination file.
-            if status is None or status == 'failed':
-                if os.path.exists(self.temp_path):
-                    os.remove(self.temp_path)
-                waiting = False
-            # If the command has finished, stop the loop for further processing
-            elif status == 'done':
-                waiting = False
-            else:
-                time.sleep(60)
-
-    def validate_encoded_file(self):
-        """Validate that the encoded file is not malformed."""
-        if os.path.exists(self.temp_path):
-            Logger.info("Pueue task completed")
-            # Check if the duration of both movies differs.
-            copy, delete = check_duration(self.origin_path, self.temp_path, seconds=1)
-
-            # Check if the filesize of the x.265 encoded object is bigger
-            # than the original.
-            if copy:
-                copy, delete = check_file_size(self.origin_path, self.temp_path)
-
-            # Only copy if checks above passed
-            if copy:
-                # Save new size and mark as encoded
-                self.movie.size = os.path.getsize(self.temp_path)
-                self.movie.encoded = True
-                self.movie.name = os.path.basename(self.target_path)
-                self.session.add(self.movie)
-                self.session.commit()
-
-                # Remove the old file and copy the new one to the proper directory.
-                os.remove(self.origin_path)
-                os.rename(self.temp_path, self.target_path)
-                os.chmod(self.target_path, 0o644)
-                self.processed_files += 1
-                Logger.info("New encoded file is now in place")
-            elif delete:
-                # Mark as failed and save
-                self.movie.failed = True
-                self.session.add(self.movie)
-                self.session.commit()
-
-                os.remove(self.temp_path)
-                Logger.warning("Didn't copy new file, see message above")
-        else:
-            Logger.error("Pueue task failed in some kind of way.")
-
-    def filter_files(self, files):
+    def create_tasks(self, files):
         """Filter files and check if they are already done or failed in a previous run.
 
-        A file will be filtered, if it already has x265 encoding or if there is
-        `encarne-failed` in the name of the file. This happens if a previous encoding task
-        failes in any way (encoded file is bigger/longer, ffmpeg failed).
+        Ignore previously failed movies (too big, duration differs) and already encoded movies.
+        Create a task with all paths and the compiled ffmpeg command.
         """
-        filtered_files = []
         for path in files:
             # Get absolute path
             path = os.path.abspath(path)
             mediainfo = get_media_encoding(path)
+
+            task = Task(path, self.config)
             size = os.path.getsize(path)
 
             # Get movie from db and check for already encoded or failed files.
-            origin_folder = os.path.dirname(path)
-            origin_file = os.path.basename(path)
-            movie = Movie.get_or_create(self.session, origin_file, origin_folder, size)
-            if movie.encoded or movie.failed:
+            task.movie = Movie.get_or_create(self.session, task.origin_file,
+                                             task.origin_folder, size)
+            if task.movie.encoded or task.movie.failed:
                 continue
 
             # Already encoded
             if '265' in mediainfo or '265' in path:
-                movie.encoded = True
-                self.session.add(movie)
+                task.movie.encoded = True
+                self.session.add(task.movie)
                 continue
             # File to small for encoding
             elif size < int(self.config['default']['min-size']):
@@ -307,37 +189,96 @@ class Encoder():
             elif mediainfo == 'unknown':
                 Logger.info(f'Failed to get encoding for {path}')
 
-            filtered_files.append(path)
+            self.tasks.append(task)
 
         self.session.commit()
-        return filtered_files
 
-    def set_ffmpeg_command(self, path, dest_path):
-        """Compile an ffmpeg command with parameters from config."""
-        if self.config['encoding']['kbitrate-audio'] != 'None':
-            audio_bitrate = f"-b:a {self.config['encoding']['kbitrate-audio']}"
+    def add_task(self, task):
+        """Schedule and manage encoding of a movie.
+
+        2. The command is added to pueue.
+        3. Wait for the task to finish.
+        4. Check if the encoding was successful.
+        4.1 If it wasn't successful, we delete the encoded file and mark the
+            old file as `encarne-failed`.
+        4.2 Remove the old file and move the encoded file to the proper location.
+        5. Repeat
+
+        """
+        # Check if the current command already in the queue.
+        status = self.get_newest_status(task.ffmpeg_command)
+
+        # Send the command to pueue for scheduling, if it isn't in the queue yet
+        if status is None:
+            # In case a previous run failed and pueue has been resetted,
+            # we need to check, if the encoded file is still there.
+            if os.path.exists(task.temp_path):
+                os.remove(task.temp_path)
+
+            # Create a new pueue task
+            args = {
+                'command': [task.ffmpeg_command],
+                'path': task.origin_folder,
+            }
+            Logger.info(f'Add task pueue:\n {task.ffmpeg_command}')
+            execute_add(args, os.path.expanduser('~'))
+
+    def wait_for_task(self, task):
+        """Wait for the pueue task to finish."""
+        Logger.info(f'Waiting for task {task.origin_file}.')
+        waiting = True
+        while waiting:
+            # Get index of current command and the current status
+            status = self.get_newest_status(task.ffmpeg_command)
+            # If the command has been removed or failed,
+            # remove the already created destination file.
+            if status is None or status == 'failed':
+                if os.path.exists(task.temp_path):
+                    os.remove(task.temp_path)
+                waiting = False
+            # If the command has finished, stop the loop for further processing
+            elif status == 'done':
+                waiting = False
+            else:
+                time.sleep(60)
+
+    def validate_encoded_file(self, task):
+        """Validate that the encoded file is not malformed."""
+        if os.path.exists(task.temp_path):
+            Logger.info("Pueue task completed")
+            # Check if the duration of both movies differs.
+            copy, delete = check_duration(task.origin_path, task.temp_path, seconds=1)
+
+            # Check if the filesize of the x.265 encoded object is bigger
+            # than the original.
+            if copy:
+                copy, delete = check_file_size(task.origin_path, task.temp_path)
+
+            # Only copy if checks above passed
+            if copy:
+                # Save new size and mark as encoded
+                task.movie.size = os.path.getsize(task.temp_path)
+                task.movie.encoded = True
+                task.movie.name = os.path.basename(task.target_path)
+                self.session.add(task.movie)
+                self.session.commit()
+
+                # Remove the old file and copy the new one to the proper directory.
+                os.remove(task.origin_path)
+                os.rename(task.temp_path, task.target_path)
+                os.chmod(task.target_path, 0o644)
+                self.processed_files += 1
+                Logger.info("New encoded file is now in place")
+            elif delete:
+                # Mark as failed and save
+                task.movie.failed = True
+                self.session.add(task.movie)
+                self.session.commit()
+
+                os.remove(task.temp_path)
+                Logger.warning("Didn't copy new file, see message above")
         else:
-            audio_bitrate = ''
-
-        if self.config['encoding']['audio'] != 'None':
-            audio_codec = f"-map 0:a -c:a {self.config['encoding']['audio']}"
-        else:
-            audio_codec = '-map 0:a'
-
-        subtitles = ''
-
-        self.ffmpeg_command = 'nice -n {nice} ffmpeg -i {path} -map 0:v -c:s copy -c:v libx265 -preset {preset} ' \
-            '-x265-params crf={crf}:pools=none -threads {threads} {audio} {audio_bitrate} {subtitles} {dest}'.format(
-                path=shlex.quote(path),
-                dest=shlex.quote(dest_path),
-                nice=self.config['default']['niceness'],
-                preset=self.config['encoding']['preset'],
-                crf=self.config['encoding']['crf'],
-                threads=self.config['encoding']['threads'],
-                audio=audio_codec,
-                subtitles=subtitles,
-                audio_bitrate=audio_bitrate,
-            )
+            Logger.error("Pueue task failed in some kind of way.")
 
     def get_newest_status(self, command):
         """Get the status and key of the given process in pueue."""

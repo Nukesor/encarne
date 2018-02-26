@@ -49,6 +49,12 @@ class Movie(base):
         movies = session.query(Movie).all()
         for movie in movies:
             path = os.path.join(movie.directory, movie.name)
+            # If it doesn't exist, try to fix the name
+            if not os.path.exists(path):
+                movie.fix_name(session)
+                path = os.path.join(movie.directory, movie.name)
+
+            # If it still doesn't exist, remove it.
             if not os.path.exists(path):
                 print(f'Remove {path}')
                 session.delete(movie)
