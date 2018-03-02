@@ -46,10 +46,10 @@ class Task():
         else:
             audio_codec = '-map 0:a'
 
-        subtitles = ''
+        subtitles = '-c:s copy'
 
-        self.ffmpeg_command = 'nice -n {nice} ffmpeg -i {path} -map 0:v -c:s copy -c:v libx265 -preset {preset} ' \
-            '-x265-params crf={crf}:pools=none -threads {threads} {audio} {audio_bitrate} {subtitles} {dest}'.format(
+        self.ffmpeg_command = 'nice -n {nice} ffmpeg -i {path} -map 0:v -c:v libx265 -preset {preset} ' \
+            '-x265-params crf={crf}:pools=none -threads {threads} {subtitles} {audio} {audio_bitrate} {dest}'.format(
                 path=shlex.quote(self.origin_path),
                 dest=shlex.quote(self.temp_path),
                 nice=config['default']['niceness'],
