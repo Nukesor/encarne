@@ -73,15 +73,15 @@ class Encoder():
         self.config['encoding'] = {
             'crf': '18',
             'preset': 'slow',
-            'niceness': '15',
             'audio': 'None',
             'kbitrate-audio': 'None',
-            'threads': '0',
+            'threads': '4',
         }
 
         self.config['default'] = {
             'min-size': '{0}'.format(1024*1024*1024*6),
             'SQL_URI': '/var/lib/encarne/encarne.sql',
+            'niceness': '15',
         }
 
         self.write_config()

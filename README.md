@@ -31,7 +31,7 @@ If you don't use an AUR package manager for installation you need to create the 
 You need to install `mediainfo` to use encarne.
 
 **Pueue**:  
-`Pueue` will be installed together with encarne, but you need to start the `Pueue` daemon once with `pueue --daemon`.
+`Pueue` will be installed together with encarne, but you need to start the `Pueue` daemon once with `pueue --daemon`. A systemctl service is installed for `Pueue` if you use an AUR package manager. Start it with `systemctl --user start pueue`.
 
 
 ## Configuration
@@ -42,11 +42,13 @@ Default parameters for `ffmpeg` encoding:
     ['encoding']
     crf = 18
     preset = slow
-    audio = flac
-    kbitrate-audio None
+    audio = None
+    kbitrate-audio = None
+    threads: 4,
 
     [default]
     min-size = 6442450944
+    niceness = 15
 
 All parameters are adjustable using the command line. Just use `-h` for more information.
 
