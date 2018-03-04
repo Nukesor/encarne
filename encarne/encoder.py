@@ -262,11 +262,15 @@ class Encoder():
                 task.movie.name = os.path.basename(task.target_path)
                 self.session.add(task.movie)
                 self.session.commit()
+                # Get original file permissions
+                stat = os.stat(task.origin_path)
 
                 # Remove the old file and copy the new one to the proper directory.
                 os.remove(task.origin_path)
                 os.rename(task.temp_path, task.target_path)
-                os.chmod(task.target_path, 0o644)
+                # Set original file permissions on new file.
+                os.chmod(task.target_path, stat.st_mode)
+                os.chown(task.target_path, stat.st_uid, stat.st_gid)
                 self.processed_files += 1
                 Logger.info("New encoded file is now in place")
             elif delete:
