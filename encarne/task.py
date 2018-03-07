@@ -36,20 +36,16 @@ class Task():
 
     def set_command(self, config):
         """Compile and set the ffmpeg command for pueue."""
-        if config['encoding']['kbitrate-audio'] != 'None':
-            audio_bitrate = f"-b:a {config['encoding']['kbitrate-audio']}"
-        else:
-            audio_bitrate = ''
-
+        audio_codec = ''
         if config['encoding']['audio'] != 'None':
             audio_codec = f"-map 0:a -c:a {config['encoding']['audio']}"
-        else:
-            audio_codec = '-map 0:a'
 
-        subtitles = '-c:s copy'
+        if audio_codec != '':
+            if config['encoding']['kbitrate-audio'] != 'None':
+                audio_codec += f" -b:a {config['encoding']['kbitrate-audio']}"
 
-        self.ffmpeg_command = 'nice -n {nice} ffmpeg -i {path} -map 0:v -c:v libx265 -preset {preset} ' \
-            '-x265-params crf={crf}:pools=none -threads {threads} {subtitles} {audio} {audio_bitrate} {dest}'.format(
+        self.ffmpeg_command = 'nice -n {nice} ffmpeg -i {path} -map 0 -c copy {audio} -c:v libx265 -preset {preset} ' \
+            '-x265-params crf={crf}:pools=none -threads {threads} {dest}'.format(
                 path=shlex.quote(self.origin_path),
                 dest=shlex.quote(self.temp_path),
                 nice=config['default']['niceness'],
@@ -57,6 +53,4 @@ class Task():
                 crf=config['encoding']['crf'],
                 threads=config['encoding']['threads'],
                 audio=audio_codec,
-                subtitles=subtitles,
-                audio_bitrate=audio_bitrate,
             )
