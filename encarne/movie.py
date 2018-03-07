@@ -48,6 +48,12 @@ class Movie(base):
         """Remove all deleted movies."""
         movies = session.query(Movie).all()
         for movie in movies:
+            # The directory has been deleted, remove the movie from db.
+            if not os.path.exists(movie.directory):
+                print(f'Remove {os.path.join(movie.directory, movie.name)}')
+                session.delete(movie)
+                continue
+
             path = os.path.join(movie.directory, movie.name)
             # If it doesn't exist, try to fix the name
             if not os.path.exists(path):
