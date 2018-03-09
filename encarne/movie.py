@@ -65,6 +65,8 @@ class Movie(base):
                 print(f'Remove {path}')
                 session.delete(movie)
 
+        session.commit()
+
     def fix_name(self, session):
         """Fix the name in case the file got renamed."""
         dir_files = [os.path.join(self.directory, x) for x in os.listdir(self.directory)]
