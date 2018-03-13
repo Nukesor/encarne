@@ -270,7 +270,11 @@ class Encoder():
                 os.rename(task.temp_path, task.target_path)
                 # Set original file permissions on new file.
                 os.chmod(task.target_path, stat.st_mode)
-                os.chown(task.target_path, stat.st_uid, stat.st_gid)
+                try:
+                    os.chown(task.target_path, stat.st_uid, stat.st_gid)
+                except PermissionError:
+                    Logger.info("Failed to set ownership for {0}".format(task.target_path))
+                    pass
                 self.processed_files += 1
                 Logger.info("New encoded file is now in place")
             elif delete:
