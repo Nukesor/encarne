@@ -30,31 +30,53 @@ class Movie(base):
     @staticmethod
     def get_or_create(session, name, directory, size, **kwargs):
         """Get or create a new Movie."""
-        movie = session.query(Movie).get((name, size))
+        movie = session.query(Movie) \
+            .filter(Movie.name == name) \
+            .filter(Movie.directory == directory) \
+            .filter(Movie.size == size) \
+            .one_or_none()
 
         if movie:
             if movie.sha1 is None:
                 movie.sha1 = get_sha1(os.path.join(directory, name))
-                session.add(movie)
-            return movie
 
-        # Found a movie with the same sha1.
-        # It probably moved from one directory into another
-        sha1 = get_sha1(os.path.join(directory, name))
-        movie = session.query(Movie) \
-            .filter(Movie.sha1 == sha1) \
-            .one_or_none()
-        if movie:
-            movie.name = name
-            movie.directory = directory
-            session.add(movie)
-            return movie
+        if not movie:
+            # Found a movie with the same sha1.
+            # It probably moved from one directory into another
+            sha1 = get_sha1(os.path.join(directory, name))
+            movies = session.query(Movie) \
+                .filter(Movie.sha1 == sha1) \
+                .all()
+
+            if len(movies) > 0:
+                # Found multiple movies with the same hash. Use the first one.
+                if len(movies) > 1:
+                    for movie in movies:
+                        path = os.path.join(movie.directory, movie.name)
+                        print(f'Found duplicate movies: {path}')
+
+                    path = os.path.join(movies[0].directory, movies[0].name)
+                    print(f'Using movie: {path}')
+
+                # Always use the first result
+                movie = movies[0]
+
+                # Set attributes to new location
+                movie.name = name
+                movie.directory = directory
+                movie.size = size
 
         # Create new movie
-        movie = Movie(sha1, name, directory, size, **kwargs)
+        if not movie:
+            movie = Movie(sha1, name, directory, size, **kwargs)
+
         session.add(movie)
         session.commit()
-        movie = session.query(Movie).get((name, size))
+        movie = session.query(Movie) \
+            .filter(Movie.name == name) \
+            .filter(Movie.directory == directory) \
+            .filter(Movie.size == size) \
+            .one()
 
         return movie
 

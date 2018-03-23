@@ -109,4 +109,4 @@ def get_sha1(path):
                 break
             sha1.update(data)
 
-    sha1.digest()
+    return sha1.hexdigest()

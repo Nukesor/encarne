@@ -121,6 +121,7 @@ class Encoder():
 
         # Get absolute path of directory
         self.directory = os.path.abspath(self.directory)
+        Logger.info(f'Searching for files in directory {self.directory}')
 
         # Check if path is a dir
         if not os.path.isdir(self.directory):
