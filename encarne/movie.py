@@ -13,9 +13,9 @@ class Movie(base):
     __tablename__ = 'movie'
 
     sha1 = Column(String(40))
-    name = Column(String(240))
+    name = Column(String(240), primary_key=True)
+    directory = Column(String(240), primary_key=True)
     size = Column(Integer())
-    directory = Column(String(240))
     original_size = Column(Integer())
     encoded = Column(Boolean(), nullable=False, default=False)
     failed = Column(Boolean(), nullable=False, default=False)

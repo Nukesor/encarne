@@ -74,6 +74,7 @@ In `1.4.0` the sha1 hash is introduced. As there is no migration system there ye
                 original_size INTEGER,
                 encoded BOOLEAN NOT NULL,
                 failed BOOLEAN NOT NULL,
+                PRIMARY KEY (name, directory)
                 CHECK (encoded IN (0, 1)),
                 CHECK (failed IN (0, 1))
             );
