@@ -21,10 +21,11 @@ def show_stats(args):
         if not os.path.exists(path):
             continue
 
-        saved += movie.original_size - movie.size
+        diff = movie.original_size - movie.size
         if movie.failed:
             failed += 1
-        elif movie.encoded:
+        elif movie.encoded and diff > 0:
+            saved += diff
             encoded += 1
 
     saved_formatted = humanfriendly.format_size(saved)
