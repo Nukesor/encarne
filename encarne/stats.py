@@ -3,6 +3,7 @@ import os
 import humanfriendly
 
 from encarne.movie import Movie
+from encarne.logger import Logger
 from encarne.db import get_session
 
 
@@ -27,9 +28,9 @@ def show_stats(args):
             encoded += 1
 
     saved_formatted = humanfriendly.format_size(saved)
-    print(f'Saved space: {saved_formatted}')
-    print(f'Reencoded movies: {encoded}')
-    print(f'Failed movies: {failed}')
+    Logger.info(f'Saved space: {saved_formatted}')
+    Logger.info(f'Reencoded movies: {encoded}')
+    Logger.info(f'Failed movies: {failed}')
 
 
 def clean_movies(args):

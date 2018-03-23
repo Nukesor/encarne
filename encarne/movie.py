@@ -3,6 +3,7 @@ import os
 from sqlalchemy import Column, String, Boolean, Integer
 
 from encarne.db import base
+from encarne.logger import Logger
 from encarne.media import get_sha1
 
 
@@ -53,10 +54,10 @@ class Movie(base):
                 if len(movies) > 1:
                     for movie in movies:
                         path = os.path.join(movie.directory, movie.name)
-                        print(f'Found duplicate movies: {path}')
+                        Logger.info(f'Found duplicate movies: {path}')
 
                     path = os.path.join(movies[0].directory, movies[0].name)
-                    print(f'Using movie: {path}')
+                    Logger.info(f'Using movie: {path}')
 
                 # Always use the first result
                 movie = movies[0]
@@ -88,7 +89,7 @@ class Movie(base):
             # Can't find the file. Remove the movie.
             path = os.path.join(movie.directory, movie.name)
             if not os.path.exists(path):
-                print(f'Remove {path}')
+                Logger.info(f'Remove {path}')
                 session.delete(movie)
 
         session.commit()
