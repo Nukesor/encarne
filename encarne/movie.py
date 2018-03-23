@@ -1,8 +1,9 @@
 """The sqlite model for a Movie."""
 import os
-from encarne.db import base
-
 from sqlalchemy import Column, String, Boolean, Integer
+
+from encarne.db import base
+from encarne.media import get_sha1
 
 
 class Movie(base):
@@ -10,6 +11,7 @@ class Movie(base):
 
     __tablename__ = 'movie'
 
+    sha1 = Column(String(40))
     name = Column(String(240), primary_key=True)
     size = Column(Integer(), primary_key=True)
     directory = Column(String(240))
@@ -17,8 +19,9 @@ class Movie(base):
     encoded = Column(Boolean(), nullable=False, default=False)
     failed = Column(Boolean(), nullable=False, default=False)
 
-    def __init__(self, name, directory, size, encoded=False, failed=False):
+    def __init__(self, sha1, name, directory, size, encoded=False, failed=False):
         """Create a new Movie."""
+        self.sha1 = sha1
         self.name = name
         self.directory = directory
         self.size = size
@@ -28,18 +31,30 @@ class Movie(base):
     def get_or_create(session, name, directory, size, **kwargs):
         """Get or create a new Movie."""
         movie = session.query(Movie).get((name, size))
-        if not movie:
-            movie = session.query(Movie) \
-                .filter(Movie.size == size) \
-                .filter(Movie.directory == directory) \
-                .one_or_none()
-            if movie:
-                movie.fix_name(session)
-        if not movie:
-            movie = Movie(name, directory, size, **kwargs)
+
+        if movie:
+            if movie.sha1 is None:
+                movie.sha1 = get_sha1(os.path.join(directory, name))
+                session.add(movie)
+            return movie
+
+        # Found a movie with the same sha1.
+        # It probably moved from one directory into another
+        sha1 = get_sha1(os.path.join(directory, name))
+        movie = session.query(Movie) \
+            .filter(Movie.sha1 == sha1) \
+            .one_or_none()
+        if movie:
+            movie.name = name
+            movie.directory = directory
             session.add(movie)
-            session.commit()
-            movie = session.query(Movie).get((name, size))
+            return movie
+
+        # Create new movie
+        movie = Movie(sha1, name, directory, size, **kwargs)
+        session.add(movie)
+        session.commit()
+        movie = session.query(Movie).get((name, size))
 
         return movie
 
@@ -48,31 +63,10 @@ class Movie(base):
         """Remove all deleted movies."""
         movies = session.query(Movie).all()
         for movie in movies:
-            # The directory has been deleted, remove the movie from db.
-            if not os.path.exists(movie.directory):
-                print(f'Remove {os.path.join(movie.directory, movie.name)}')
-                session.delete(movie)
-                continue
-
+            # Can't find the file. Remove the movie.
             path = os.path.join(movie.directory, movie.name)
-            # If it doesn't exist, try to fix the name
-            if not os.path.exists(path):
-                movie.fix_name(session)
-                path = os.path.join(movie.directory, movie.name)
-
-            # If it still doesn't exist, remove it.
             if not os.path.exists(path):
                 print(f'Remove {path}')
                 session.delete(movie)
 
         session.commit()
-
-    def fix_name(self, session):
-        """Fix the name in case the file got renamed."""
-        dir_files = [os.path.join(self.directory, x) for x in os.listdir(self.directory)]
-        for movie in dir_files:
-            if os.path.getsize(movie) == self.size:
-                self.name = os.path.basename(movie)
-                session.add(self)
-                session.commit()
-                return

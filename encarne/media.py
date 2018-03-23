@@ -1,6 +1,7 @@
 """Mediainfo related code."""
 import os
 import math
+import hashlib
 import subprocess
 
 from lxml import etree
@@ -93,3 +94,19 @@ def get_media_duration(path):
     )
 
     return delta
+
+
+def get_sha1(path):
+    """Return the sha1 of a file."""
+    # BUF_SIZE is totally arbitrary, change for your app!
+    BUF_SIZE = 65536  # lets read stuff in 64kb chunks!
+
+    sha1 = hashlib.sha1()
+    with open(path, 'rb') as f:
+        while True:
+            data = f.read(BUF_SIZE)
+            if not data:
+                break
+            sha1.update(data)
+
+    sha1.digest()

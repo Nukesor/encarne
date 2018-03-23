@@ -55,9 +55,19 @@ All parameters are adjustable using the command line. Just use `-h` for more inf
 A configuration file is created in `/home/$USER/.config/encarne` after the first start.
 
 
-## Stats
+## Misc
 
-Type `encarne stat` to show how much space you already saved.
+All movies are now hashed with sha1.
+If you move a movie to another location and run `encarne` again, it will recognize the movie and update the path in it's DB.
+
+Type `encarne stat` to show how much space you already saved (Non existent files aren't counted).
+Type `encarne clean` to clean movies which do no longer exist in the file system.
+
+# Migration
+In `1.4.0` the sha1 hash is introduced. As there is no migration system there yet, you need to run the migration once manually:
+
+        > sqlite3 /var/lib/encarne
+        --> ALTER TABLE movie ADD sha1 VARCHAR(40);
 
 
 Copyright &copy; 2016 Arne Beer ([@Nukesor](https://github.com/Nukesor))

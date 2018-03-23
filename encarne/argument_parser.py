@@ -1,6 +1,6 @@
 """Argument parsing."""
 import argparse
-from encarne.stats import show_stats
+from encarne.stats import show_stats, clean_movies
 
 
 # Specifying commands
@@ -50,3 +50,9 @@ stat_subcommand = subparsers.add_parser(
     'stat', help='Show some statistics.',
 )
 stat_subcommand.set_defaults(func=show_stats)
+
+# clean
+clean_subcommand = subparsers.add_parser(
+    'clean', help='Check if any movies have been removed.',
+)
+stat_subcommand.set_defaults(func=clean_movies)

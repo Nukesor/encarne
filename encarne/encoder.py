@@ -17,6 +17,7 @@ from encarne.media import (
     check_file_size,
     check_duration,
     get_media_encoding,
+    get_sha1,
 )
 
 
@@ -256,12 +257,15 @@ class Encoder():
 
             # Only copy if checks above passed
             if copy:
-                # Save new size and mark as encoded
+                # Save new path, size, sha1 and mark as encoded
+                task.movie.sha1 = get_sha1(task.temp_path)
                 task.movie.size = os.path.getsize(task.temp_path)
                 task.movie.encoded = True
                 task.movie.name = os.path.basename(task.target_path)
+
                 self.session.add(task.movie)
                 self.session.commit()
+
                 # Get original file permissions
                 stat = os.stat(task.origin_path)
 
