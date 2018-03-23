@@ -30,7 +30,7 @@ def show_stats(args):
 
     saved_formatted = humanfriendly.format_size(saved)
     Logger.info(f'Saved space: {saved_formatted}')
-    Logger.info(f'Reencoded movies: {encoded}')
+    Logger.info(f'Reencoded container: {encoded}')
     Logger.info(f'Failed movies: {failed}')
 
 

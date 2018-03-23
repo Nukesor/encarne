@@ -13,8 +13,8 @@ class Movie(base):
     __tablename__ = 'movie'
 
     sha1 = Column(String(40))
-    name = Column(String(240), primary_key=True)
-    size = Column(Integer(), primary_key=True)
+    name = Column(String(240))
+    size = Column(Integer())
     directory = Column(String(240))
     original_size = Column(Integer())
     encoded = Column(Boolean(), nullable=False, default=False)
@@ -61,6 +61,12 @@ class Movie(base):
 
                 # Always use the first result
                 movie = movies[0]
+
+                # Inform user about rename or directory change
+                old_path = os.path.join(movie.directory, movie.name)
+                new_path = os.path.join(directory, name)
+                Logger.info(f'{name} moved in some kind of way.')
+                Logger.info(f'Moving from {old_path} to new path {new_path}.')
 
                 # Set attributes to new location
                 movie.name = name

@@ -67,7 +67,23 @@ Type `encarne clean` to clean movies which do no longer exist in the file system
 In `1.4.0` the sha1 hash is introduced. As there is no migration system there yet, you need to run the migration once manually:
 
         > sqlite3 /var/lib/encarne
-        --> ALTER TABLE movie ADD sha1 VARCHAR(40);
+            CREATE TABLE movie2 (
+                name VARCHAR(240) NOT NULL,
+                directory VARCHAR(240),
+                size INTEGER NOT NULL,
+                original_size INTEGER,
+                encoded BOOLEAN NOT NULL,
+                failed BOOLEAN NOT NULL,
+                CHECK (encoded IN (0, 1)),
+                CHECK (failed IN (0, 1))
+            );
+            INSERT INTO movie2
+               (name, directory, size, original_size, encoded, failed)
+               SELECT name, directory, size, original_size, encoded, failed
+               FROM movie;
+            DROP TABLE movie;
+            ALTER TABLE movie2 RENAME TO movie;
+            ALTER TABLE movie ADD sha1 VARCHAR(40);
 
 
 Copyright &copy; 2016 Arne Beer ([@Nukesor](https://github.com/Nukesor))
