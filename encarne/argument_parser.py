@@ -55,4 +55,4 @@ stat_subcommand.set_defaults(func=show_stats)
 clean_subcommand = subparsers.add_parser(
     'clean', help='Check if any movies have been removed.',
 )
-stat_subcommand.set_defaults(func=clean_movies)
+clean_subcommand.set_defaults(func=clean_movies)

@@ -175,6 +175,7 @@ class Encoder():
             # Get movie from db and check for already encoded or failed files.
             task.movie = Movie.get_or_create(self.session, task.origin_file,
                                              task.origin_folder, size)
+
             if task.movie.encoded or task.movie.failed:
                 continue
 
