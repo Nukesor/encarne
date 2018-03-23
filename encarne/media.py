@@ -99,7 +99,7 @@ def get_media_duration(path):
 def get_sha1(path):
     """Return the sha1 of a file."""
     # BUF_SIZE is totally arbitrary, change for your app!
-    BUF_SIZE = 65536  # lets read stuff in 64kb chunks!
+    BUF_SIZE = 16 * 65536  # lets read stuff in 64kb chunks!
 
     sha1 = hashlib.sha1()
     with open(path, 'rb') as f:
