@@ -81,7 +81,7 @@ def get_media_duration(path):
         return None
 
     try:
-        duration = duration.split('.')[0]
+        duration = duration.split('.')[0].split(';')[0]
         date = datetime.strptime(duration, '%H:%M:%S')
     except BaseException:
         Logger.info(f'Unkown duration: {duration}')
