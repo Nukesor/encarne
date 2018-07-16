@@ -38,6 +38,7 @@ class Encoder():
         self.format_args(args)
 
         self.tasks = []
+        self.pueue_status = {}
         # Various variables
         self.processed_files = 0
 
@@ -147,14 +148,23 @@ class Encoder():
         else:
             Logger.info(f'{len(self.tasks)} files found.')
 
+        self.receive_pueue_status()
         # Add all tasks to pueue
         for task in self.tasks:
             self.add_task(task)
 
-        # Wait for all tasks
-        for task in self.tasks:
-            self.wait_for_task(task)
-            self.validate_encoded_file(task)
+        while len(self.tasks) > 0:
+            self.receive_pueue_status()
+            # Wait for all tasks
+            remaining_tasks = []
+            for task in self.tasks:
+                if self.is_task_done(task):
+                    self.validate_encoded_file(task)
+                else:
+                    remaining_tasks.append(task)
+
+            self.tasks = remaining_tasks
+            time.sleep(60)
 
         Logger.info(f'Successfully encoded {self.processed_files} movies. Exiting')
 
@@ -223,32 +233,33 @@ class Encoder():
                 'command': [task.ffmpeg_command],
                 'path': task.origin_folder,
             }
+
             Logger.info(f'Add task pueue:\n {task.ffmpeg_command}')
             execute_add(args, os.path.expanduser('~'))
 
-    def wait_for_task(self, task):
+    def is_task_done(self, task):
         """Wait for the pueue task to finish."""
-        Logger.info(f'Waiting for task {task.origin_file}.')
-        waiting = True
-        while waiting:
-            # Get index of current command and the current status
-            status = self.get_newest_status(task.ffmpeg_command)
-            # If the command has been removed or failed,
-            # remove the already created destination file.
-            if status is None or status == 'failed':
-                if os.path.exists(task.temp_path):
-                    os.remove(task.temp_path)
-                waiting = False
-            # If the command has finished, stop the loop for further processing
-            elif status == 'done':
-                waiting = False
-            else:
-                time.sleep(60)
+        # Get index of current command and the current status
+        status = self.get_newest_status(task.ffmpeg_command)
+
+        # If the command has been removed or failed,
+        # remove the already created destination file.
+        if status is None or status == 'failed':
+            if os.path.exists(task.temp_path):
+                os.remove(task.temp_path)
+            return True
+
+        # If the command has finished, stop the loop for further processing
+        elif status == 'done':
+            return True
+
+        return False
 
     def validate_encoded_file(self, task):
         """Validate that the encoded file is not malformed."""
         if os.path.exists(task.temp_path):
-            Logger.info("Pueue task completed")
+            Logger.info("Pueue task completed:")
+            Logger.info(task.origin_file)
             # Check if the duration of both movies differs.
             copy, delete = check_duration(task.origin_path, task.temp_path, seconds=1)
 
@@ -296,15 +307,16 @@ class Encoder():
 
     def get_newest_status(self, command):
         """Get the status and key of the given process in pueue."""
-        status = command_factory('status')({}, root_dir=os.path.expanduser('~'))
-
-        if isinstance(status['data'], dict):
+        if isinstance(self.pueue_status['data'], dict):
             # Get the status of the latest submitted job, with this command.
             highest_key = None
-            for key, value in status['data'].items():
+            for key, value in self.pueue_status['data'].items():
                 if value['command'] == command:
                     if highest_key is None or highest_key < key:
                         highest_key = key
             if highest_key is not None:
-                return status['data'][highest_key]['status']
+                return self.pueue_status['data'][highest_key]['status']
         return None
+
+    def receive_pueue_status(self):
+        self.pueue_status = command_factory('status')({}, root_dir=os.path.expanduser('~'))
