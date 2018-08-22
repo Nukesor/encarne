@@ -84,8 +84,12 @@ def get_media_duration(path):
         duration = duration.split('.')[0].split(';')[0]
         date = datetime.strptime(duration, '%H:%M:%S')
     except BaseException:
-        Logger.info(f'Unkown duration: {duration}')
-        return None
+        try:
+            duration = duration.rsplit(':', 1)[0]
+            date = datetime.strptime(duration, '%H:%M:%S')
+        except BaseException:
+            Logger.info(f'Unknown duration: {duration}')
+            return None
 
     delta = timedelta(
         hours=date.hour,
