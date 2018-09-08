@@ -11,12 +11,12 @@ dev-install:
 	venv/bin/python setup.py develop
 
 clean:
-	sudo rm -rf dist
-	sudo rm -rf build
-	sudo rm -rf encarne.egg-info
+	rm -rf dist
+	rm -rf build
+	rm -rf encarne.egg-info
 
 dist:
-	sudo python setup.py sdist --formats=gztar,zip
+	python setup.py sdist --formats=gztar,zip
 
 upload: clean dist
 	twine upload dist/*
