@@ -42,6 +42,13 @@ class Movie(base):
                 movie.sha1 = get_sha1(os.path.join(directory, name))
 
         if not movie:
+            # Delete any other movies with differing size.
+            # This might be necessary in case we get a new release, with a different size.
+            session.query(Movie) \
+                .filter(Movie.name == name) \
+                .filter(Movie.directory == directory) \
+                .delete()
+
             # Found a movie with the same sha1.
             # It probably moved from one directory into another
             sha1 = get_sha1(os.path.join(directory, name))
