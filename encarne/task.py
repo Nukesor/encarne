@@ -19,15 +19,10 @@ class Task():
         """Get the temp dir for encoding and the name for the new encoded video file."""
         home = os.path.expanduser('~')
 
-        # Change filename to contain 'x265'.
-        # Replace it if there is a 'x264' in the filename.
-        if 'x264' in self.origin_file:
-            self.temp_path = os.path.join(home, self.origin_file.replace('x264', 'x265'))
-            self.temp_path = os.path.splitext(self.temp_path)[0] + '.mkv'
-        # Add a `-x265.mkv` if there is nothing to replace
-        else:
-            self.temp_path = os.path.join(home, self.origin_file)
-            self.temp_path = os.path.splitext(self.temp_path)[0] + '-x265.mkv'
+        # Remove any x264 from file_name
+        cleand_name = self.origin_file.replace('-x264', '').replace('_x264', '').replace('x264', '')
+        self.temp_path = os.path.join(home, cleand_name)
+        self.temp_path = os.path.splitext(self.temp_path)[0] + '.mkv'
 
         self.target_path = os.path.join(
             self.origin_folder,
