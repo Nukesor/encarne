@@ -49,16 +49,26 @@ def check_file_size(origin, temp):
 
 def get_media_encoding(path):
     """Execute external mediainfo command and find the video encoding library."""
+    # Get mediainfo output
+    process = subprocess.run(
+        ['mediainfo', '--Output=XML', path],
+        stdout=subprocess.PIPE,
+        stderr=subprocess.PIPE,
+    )
+    root = etree.XML(process.stdout)
+
+    # Try writing library
     try:
-        process = subprocess.run(
-            ['mediainfo', '--Output=XML', path],
-            stdout=subprocess.PIPE,
-            stderr=subprocess.PIPE,
-        )
-        root = etree.XML(process.stdout)
-        writing_library = root.findall('.//track[@type="Video"]/Writing_library')[0].text
+        writing_library = root.findall('.//{https://mediaarea.net/mediainfo}track[@type="Video"]/{https://mediaarea.net/mediainfo}Writing_library')[0].text
     except BaseException:
         writing_library = 'unknown'
+
+    # Try encoded library name
+    if writing_library == 'unknown':
+        try:
+            writing_library = root.findall('.//{https://mediaarea.net/mediainfo}track[@type="Video"]/{https://mediaarea.net/mediainfo}Encoded_Library_Name')[0].text
+        except BaseException:
+            writing_library = 'unknown'
 
     return writing_library
 
