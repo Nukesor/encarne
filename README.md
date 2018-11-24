@@ -13,6 +13,7 @@ Another requirement is `mediainfo`, which is needed to determine various attribu
 - Configurable encoder thread count
 - Niceness to not slow down other processes on your server
 - Database to remember failed movies and to measure overall storage savings
+- Automatic detection of renamed files
 - Schedule management with pueue
 
 ## Installation:

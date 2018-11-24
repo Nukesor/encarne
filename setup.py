@@ -15,7 +15,7 @@ setup(
         'lxml',
         'humanfriendly',
         'SQLAlchemy~=1.2.0',
-        'sqlalchemy-utils~=0.32.0',
+        'sqlalchemy-utils~=0.33.0',
     ],
     classifiers=[
         'License :: OSI Approved :: MIT License',
