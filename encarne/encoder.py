@@ -247,6 +247,7 @@ class Encoder():
         if status is None or status == 'failed':
             if os.path.exists(task.temp_path):
                 os.remove(task.temp_path)
+            task.movie.failed = True
             return True
 
         # If the command has finished, stop the loop for further processing
