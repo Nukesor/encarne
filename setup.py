@@ -14,8 +14,8 @@ setup(
         'pueue',
         'lxml',
         'humanfriendly',
-        'SQLAlchemy~=1.2.0',
-        'sqlalchemy-utils~=0.33.0',
+        'SQLAlchemy',
+        'sqlalchemy-utils',
     ],
     classifiers=[
         'License :: OSI Approved :: MIT License',
