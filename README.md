@@ -6,6 +6,13 @@ Every container, which isn't encoded with `x265` will be reencoded using `x265` 
 `pueue` is used for scheduling and process handling.
 Another requirement is `mediainfo`, which is needed to determine various attributes of video containers.
 
+**Attention**
+
+This project is archived. It is quite outdated and I really don't like the way I've designed this project. \
+Furthermore, it relies on integration with Pueue, which has been rewritten in Rust in the meantime.
+
+**Attention**
+
 ## Features:
 
 - Automatic conversion of all movies/series in a directory
